@@ -3,32 +3,43 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
   <title>{% block title %}{{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}</title>
   
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#C99A4B">
+  <meta name="theme-color" content="#0E0D0B">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="{{ shop_settings.shop_name|default:'LiquorLoft' }}">
   
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
   {% block extra_css %}{% endblock %}
 </head>
 <body>
-  <!-- Header -->
+  <!-- Mobile-Optimized Header -->
   <header>
-    <div class="brand">
-      <img src="{% static 'img/logo.jpg' %}" alt="Vidya’s Liquor Loft" class="logo" style="width:48px; height:48px; object-fit:cover; border-radius:4px; border:1px solid #C99A4B; flex:none;">
-      <div>
-        <h1>{{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}</h1>
-        <div class="sub">Premium spirits. Exceptional experiences.</div>
+    <a href="{% url 'dashboard' %}" class="brand" style="text-decoration:none; color:inherit;">
+      <img src="{% static 'img/logo.jpg' %}" alt="Vidya’s Liquor Loft" class="logo" style="width:40px; height:40px; object-fit:cover; border-radius:4px; border:1px solid #C99A4B; flex:none;">
+      <div style="min-width:0;">
+        <h1 class="brand-title">{{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}</h1>
+        <div class="sub brand-sub">Premium spirits & retail POS</div>
       </div>
-    </div>
+    </a>
     <div class="tools">
-      <button class="theme-btn" id="motion">Motion on</button>
-      <button class="theme-btn" id="theme">Dark</button>
+      <button class="theme-btn tool-btn" id="theme" title="Toggle Dark/Light theme" aria-label="Toggle theme">
+        <span class="tool-icon" id="theme-icon">🌓</span>
+        <span class="tool-label">Dark</span>
+      </button>
+      <button class="theme-btn tool-btn" id="motion" title="Toggle animation speed" aria-label="Toggle motion">
+        <span class="tool-icon">⚡</span>
+        <span class="tool-label">Motion</span>
+      </button>
       {% if request.user.is_authenticated %}
-        <a href="{% url 'logout' %}" class="theme-btn" style="text-decoration:none; color:#ef4444;" title="Log out {{ request.user.username }}">Exit</a>
+        <a href="{% url 'logout' %}" class="theme-btn tool-btn tool-exit" title="Log out {{ request.user.username }}" aria-label="Log out">
+          <span class="tool-icon">🚪</span>
+          <span class="tool-label">Exit</span>
+        </a>
       {% endif %}
     </div>
   </header>
@@ -37,7 +48,7 @@
   {% if messages %}
     <div class="container" style="padding-bottom:0;">
       {% for message in messages %}
-        <div class="line" style="background:var(--surface); border-left:4px solid var(--gold); padding:10px 14px; margin-bottom:10px; border-radius:3px;">
+        <div class="line flash-message" style="background:var(--surface); border-left:4px solid var(--gold); padding:10px 14px; margin-bottom:10px; border-radius:4px;">
           {{ message }}
         </div>
       {% endfor %}
@@ -49,41 +60,89 @@
     {% block content %}{% endblock %}
   </main>
 
-  <!-- Bottom Navigation (Mobile First) -->
+  <!-- Bottom Navigation (Mobile First with SVG Icons) -->
   {% if request.user.is_authenticated %}
   <nav class="main-nav">
-    <i id="ind"></i>
-    <a href="{% url 'pos' %}" class="{% if request.resolver_match.url_name == 'pos' %}on{% endif %}">
+    <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}on{% endif %}" title="Dashboard">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="7" height="9" x="3" y="3" rx="1"/>
+        <rect width="7" height="5" x="14" y="3" rx="1"/>
+        <rect width="7" height="9" x="14" y="12" rx="1"/>
+        <rect width="7" height="5" x="3" y="16" rx="1"/>
+      </svg>
+      <span>Home</span>
+    </a>
+    <a href="{% url 'pos' %}" class="{% if request.resolver_match.url_name == 'pos' %}on{% endif %}" title="Billing POS">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/>
+        <path d="M3 6h18"/>
+        <path d="M16 10a4 4 0 0 1-8 0"/>
+      </svg>
       <span>Billing</span>
     </a>
-    <a href="{% url 'product_list' %}" class="{% if 'inventory' in request.path %}on{% endif %}">
+    <a href="{% url 'product_list' %}" class="{% if 'inventory' in request.path %}on{% endif %}" title="Stock on hand">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m7.5 4.27 9 5.15"/>
+        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+        <path d="m3.3 7 8.7 5 8.7-5"/>
+        <path d="M12 22V12"/>
+      </svg>
       <span>Stock</span>
     </a>
     {% if is_owner %}
-    <a href="{% url 'purchase_list' %}" class="{% if 'purchases' in request.path %}on{% endif %}">
+    <a href="{% url 'purchase_list' %}" class="{% if 'purchases' in request.path %}on{% endif %}" title="Supplier Purchases">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
+        <path d="M15 18H9"/>
+        <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/>
+        <circle cx="17" cy="18" r="2"/>
+        <circle cx="7" cy="18" r="2"/>
+      </svg>
       <span>Purchases</span>
     </a>
     {% endif %}
-    <a href="{% url 'customer_list' %}" class="{% if 'customers' in request.path %}on{% endif %}">
+    <a href="{% url 'customer_list' %}" class="{% if 'customers' in request.path %}on{% endif %}" title="Credit Customers">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
       <span>Credit</span>
     </a>
     {% if is_owner %}
-    <a href="{% url 'report_daily_sales' %}" class="{% if 'reports' in request.path %}on{% endif %}">
+    <a href="{% url 'report_daily_sales' %}" class="{% if 'reports' in request.path %}on{% endif %}" title="Sales Reports">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 3v18h18"/>
+        <path d="m19 9-5 5-4-4-3 3"/>
+      </svg>
       <span>Reports</span>
     </a>
-    <a href="{% url 'shop_settings' %}" class="{% if 'settings' in request.path or 'network' in request.path %}on{% endif %}">
+    <a href="{% url 'shop_settings' %}" class="{% if 'settings' in request.path or 'network' in request.path %}on{% endif %}" title="Settings">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
       <span>Settings</span>
     </a>
     {% else %}
-    <a href="{% url 'network_info' %}" class="{% if 'network' in request.path %}on{% endif %}">
+    <a href="{% url 'network_info' %}" class="{% if 'network' in request.path %}on{% endif %}" title="Wi-Fi Info">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 13a10 10 0 0 1 14 0"/>
+        <path d="M8.5 16.5a5 5 0 0 1 7 0"/>
+        <path d="M2 8.82a15 15 0 0 1 20 0"/>
+        <line x1="12" y1="20" x2="12.01" y2="20"/>
+      </svg>
       <span>Wi-Fi</span>
     </a>
     {% endif %}
   </nav>
   {% endif %}
 
-  <!-- Shared Toast & Sheet -->
-  <div class="sheet" id="sheet"></div>
+  <!-- Shared Toast & Sheet with Touch Handle -->
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle" aria-hidden="true"></div>
+  </div>
   <div class="toast" id="toast"></div>
 
   <script src="{% static 'js/main.js' %}"></script>

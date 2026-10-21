@@ -17,12 +17,21 @@ document.addEventListener('DOMContentLoaded', function () {
     const themeBtn = document.getElementById('theme');
     const root = document.documentElement;
 
+    function updateThemeUI(theme) {
+        if (!themeBtn) return;
+        const icon = themeBtn.querySelector('.tool-icon');
+        const label = themeBtn.querySelector('.tool-label');
+        if (icon) icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+        if (label) label.textContent = theme === 'dark' ? 'Light' : 'Dark';
+        else themeBtn.textContent = theme === 'dark' ? 'Light' : 'Dark';
+    }
+
     const savedTheme = localStorage.getItem('vll_theme');
     if (savedTheme) {
         root.dataset.theme = savedTheme;
-        if (themeBtn) themeBtn.textContent = savedTheme === 'dark' ? 'Light' : 'Dark';
+        updateThemeUI(savedTheme);
     } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        if (themeBtn) themeBtn.textContent = 'Light';
+        updateThemeUI('dark');
     }
 
     if (themeBtn) {
@@ -31,26 +40,48 @@ document.addEventListener('DOMContentLoaded', function () {
             const newTheme = isDark ? 'light' : 'dark';
             root.dataset.theme = newTheme;
             localStorage.setItem('vll_theme', newTheme);
-            themeBtn.textContent = newTheme === 'dark' ? 'Light' : 'Dark';
+            updateThemeUI(newTheme);
             window.toast(`Switched to ${newTheme} theme`);
         });
     }
 
     // 3. Motion Preference (Calm vs Animated)
     const motionBtn = document.getElementById('motion');
+    function updateMotionUI(isCalm) {
+        if (!motionBtn) return;
+        const label = motionBtn.querySelector('.tool-label');
+        if (label) label.textContent = isCalm ? 'Calm' : 'Motion';
+        else motionBtn.textContent = isCalm ? 'Motion off' : 'Motion on';
+    }
+
     const savedMotion = localStorage.getItem('vll_motion');
     if (savedMotion === 'calm') {
         root.classList.add('calm');
-        if (motionBtn) motionBtn.textContent = 'Motion off';
+        updateMotionUI(true);
     }
 
     if (motionBtn) {
         motionBtn.addEventListener('click', function () {
             const isCalm = root.classList.toggle('calm');
             localStorage.setItem('vll_motion', isCalm ? 'calm' : 'normal');
-            motionBtn.textContent = isCalm ? 'Motion off' : 'Motion on';
+            updateMotionUI(isCalm);
             window.toast(isCalm ? 'Animations disabled' : 'Animations enabled');
         });
+    }
+
+    // Sheet touch dismiss / swipe down
+    const sheet = document.getElementById('sheet');
+    if (sheet) {
+        let startY = 0;
+        sheet.addEventListener('touchstart', e => {
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+        sheet.addEventListener('touchmove', e => {
+            const currentY = e.touches[0].clientY;
+            if (currentY - startY > 60) {
+                sheet.classList.remove('on');
+            }
+        }, { passive: true });
     }
 
     // 4. Register Progressive Web App (PWA) Offline Service Worker

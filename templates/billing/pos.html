@@ -6,24 +6,25 @@
 {% block content %}
 <section class="view on" id="v-bill">
   <h2>New bill</h2>
-  <div style="position:relative;">
-    <input class="search" id="q" placeholder="Scan a barcode or type a brand" autocomplete="off" autofocus>
+  <div class="search-wrap">
+    <input class="search" id="q" placeholder="Scan barcode or type a brand..." autocomplete="off">
+    <button type="button" class="cam-btn" id="cam-scan-btn" title="Scan with Phone Camera" aria-label="Camera Barcode Scanner">📷</button>
     <div id="search-dropdown" class="sheet" style="position:absolute; top:100%; left:0; right:0; transform:none; display:none; max-height:260px; z-index:60; border:1px solid var(--line); border-top:2px solid var(--gold); padding:8px 12px; background:var(--surface);"></div>
   </div>
-  <div class="hint" id="hint">Press Enter after a scan. Unknown codes can be added on the spot.</div>
+  <div class="hint" id="hint">Press Enter or tap 📷 to scan. Unknown codes can be added on the spot.</div>
   
-  <!-- Quick Pick & Search Results -->
-  <div id="list">
+  <!-- Quick Pick & Search Results as Touch Cards -->
+  <div id="list" class="quick-picks-grid">
     {% for p in quick_picks %}
-      <button class="row" style="--i:{{ forloop.counter0 }}" data-id="{{ p.id }}" data-barcode="{{ p.barcode|default:'' }}" data-mrp="{{ p.mrp }}" data-stock="{{ p.calculated_stock }}" data-name="{{ p.brand }} {{ p.name }}" data-size="{{ p.size_ml }}">
-        <span class="name">
-          <b>{{ p.brand }} {{ p.name }}</b>
-          <small>{{ p.size_ml }} ml · {{ p.calculated_stock }} in stock {% if p.calculated_stock <= p.reorder_level %}<span class="tag">Low stock</span>{% endif %}</small>
-        </span>
-        <span class="num">₹{{ p.mrp|floatformat:2 }}</span>
+      <button type="button" class="quick-pick-card" style="--i:{{ forloop.counter0 }}" data-id="{{ p.id }}" data-barcode="{{ p.barcode|default:'' }}" data-mrp="{{ p.mrp }}" data-stock="{{ p.calculated_stock }}" data-name="{{ p.brand }} {{ p.name }}" data-size="{{ p.size_ml }}">
+        <div class="qp-title"><b>{{ p.brand }}</b> {{ p.name }}</div>
+        <div class="qp-meta">
+          <span>{{ p.size_ml }}ml · {{ p.calculated_stock }} left {% if p.calculated_stock <= p.reorder_level %}<span class="tag">Low</span>{% endif %}</span>
+          <span class="qp-price num">₹{{ p.mrp|floatformat:2 }}</span>
+        </div>
       </button>
     {% empty %}
-      <div class="empty">No quick-pick items configured. Scan a barcode above to add bottles.</div>
+      <div class="empty" style="grid-column: 1 / -1;">No quick-pick items configured. Scan a barcode above to add bottles.</div>
     {% endfor %}
   </div>
 
@@ -65,6 +66,35 @@
 
   <button class="primary" id="save">Save bill and update stock</button>
 </section>
+
+<!-- Mobile Phone Floating Sticky Checkout Summary Bar -->
+<div class="pos-mobile-bar" id="pos-mobile-bar">
+  <div class="info">
+    <span class="info-count" id="mobile-bar-count">0 items</span>
+    <span class="info-total num" id="mobile-bar-total">₹0</span>
+  </div>
+  <button type="button" class="btn-pay" id="mobile-bar-pay-btn">Review & Pay &rarr;</button>
+</div>
+
+<!-- Mobile Phone Camera Scanner Modal -->
+<div class="modal-overlay" id="camera-modal">
+  <div class="modal-card" style="max-width:400px; text-align:center;">
+    <h3>Phone Camera Scanner</h3>
+    <div class="sub" style="margin-bottom:12px;">Point camera at bottle barcode to add to bill:</div>
+    <div style="position:relative; width:100%; height:230px; background:#000; border-radius:8px; overflow:hidden; margin-bottom:12px;">
+      <video id="scanner-video" playsinline style="width:100%; height:100%; object-fit:cover;"></video>
+      <div style="position:absolute; inset:25px; border:2px dashed var(--gold); border-radius:6px; pointer-events:none; opacity:0.85;"></div>
+    </div>
+    <div id="cam-status" style="font-size:12px; color:var(--mute); margin-bottom:12px;">Starting camera...</div>
+    <div style="display:flex; gap:10px;">
+      <label for="cam-file-input" class="theme-btn" style="flex:1; text-align:center; padding:10px; cursor:pointer;">
+        Upload Photo
+        <input type="file" accept="image/*" capture="environment" id="cam-file-input" style="display:none;">
+      </label>
+      <button type="button" class="theme-btn" id="cam-close-btn" style="padding:10px 16px;">Close</button>
+    </div>
+  </div>
+</div>
 
 <!-- Unknown Barcode Quick-Add Modal -->
 <div class="modal-overlay" id="unknown-modal">
@@ -210,18 +240,24 @@ document.addEventListener('DOMContentLoaded', function () {
         })(t0);
     }
 
-    // Always focus the search input for barcode scanner
+    // Mobile detection to avoid keyboard popping open on taps
+    const isMobileTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 768);
+
+    // Focus search input only for physical desktop keyboard / barcode scanners
     function focusSearch() {
+        if (isMobileTouch) return;
         if (!unknownModal.classList.contains('open') && !splitModal.classList.contains('open') && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
             q.focus();
         }
     }
-    focusSearch();
-    document.addEventListener('click', e => {
-        if (!e.target.closest('.modal-card') && !e.target.closest('input') && !e.target.closest('select')) {
-            focusSearch();
-        }
-    });
+    if (!isMobileTouch) {
+        focusSearch();
+        document.addEventListener('click', e => {
+            if (!e.target.closest('.modal-card') && !e.target.closest('input') && !e.target.closest('select') && !e.target.closest('button')) {
+                focusSearch();
+            }
+        });
+    }
 
     // Add product to cart
     function addToCart(p) {
@@ -246,8 +282,9 @@ document.addEventListener('DOMContentLoaded', function () {
     function drawCart() {
         const ids = Object.keys(cart);
         if (!ids.length) {
-            cartEl.innerHTML = `<div class="empty">Nothing added yet. Scan a bottle to begin.</div>`;
+            cartEl.innerHTML = `<div class="empty">Nothing added yet. Scan a bottle or tap quick picks above.</div>`;
             count(totalEl, 0);
+            updateMobileBar(0, 0);
             return;
         }
 
@@ -273,18 +310,42 @@ document.addEventListener('DOMContentLoaded', function () {
         calcSum();
     }
 
-    // Calculate Grand Total
+    // Calculate Grand Total & Update Mobile Floating Bar
     function calcSum() {
         let s = 0;
+        let totalBottles = 0;
         for (const id in cart) {
             s += cart[id].mrp * cart[id].qty;
+            totalBottles += cart[id].qty;
         }
         const d = Math.min(Math.max(parseFloat(discInput.value) || 0, 0), s);
         const grand = Math.max(0, s - d);
         count(totalEl, grand);
+        updateMobileBar(grand, totalBottles);
         return grand;
     }
     discInput.oninput = calcSum;
+
+    function updateMobileBar(total, count) {
+        const bar = document.getElementById('pos-mobile-bar');
+        const countEl = document.getElementById('mobile-bar-count');
+        const totalEl = document.getElementById('mobile-bar-total');
+        if (!bar) return;
+        if (count > 0) {
+            bar.style.display = 'flex';
+            countEl.textContent = `${count} bottle${count > 1 ? 's' : ''} in bill`;
+            totalEl.textContent = fmt(total);
+        } else {
+            bar.style.display = 'none';
+        }
+    }
+
+    const mobilePayBtn = document.getElementById('mobile-bar-pay-btn');
+    if (mobilePayBtn) {
+        mobilePayBtn.onclick = () => {
+            document.getElementById('save').scrollIntoView({ behavior: 'smooth' });
+        };
+    }
 
     // Cart +/- qty buttons
     cartEl.onclick = e => {
@@ -303,7 +364,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Quick pick item clicks
     listEl.onclick = e => {
-        const btn = e.target.closest(".row");
+        const btn = e.target.closest(".quick-pick-card, .row");
         if (btn) {
             btn.classList.remove("bump");
             void btn.offsetWidth;
@@ -315,15 +376,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 mrp: parseFloat(btn.dataset.mrp),
                 stock: parseInt(btn.dataset.stock || 0)
             });
+            window.toast("Added " + btn.dataset.name);
         }
     };
 
     // Live instant search as user types or scans
     q.oninput = () => {
         const v = q.value.trim().toLowerCase();
-        const rows = listEl.querySelectorAll('.row');
+        const cards = listEl.querySelectorAll('.quick-pick-card, .row');
         let matchCount = 0;
-        rows.forEach(r => {
+        cards.forEach(r => {
             const name = (r.dataset.name || '').toLowerCase();
             const bc = (r.dataset.barcode || '').toLowerCase();
             if (!v || name.includes(v) || bc.includes(v)) {
@@ -334,18 +396,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
         if (v.length >= 2) {
-            hint.textContent = `Filtering "${v}"... Press Enter to scan or select below.`;
+            hint.textContent = `Filtering "${v}"... Press Enter or tap below.`;
         } else {
-            hint.textContent = "Press Enter after a scan. Unknown codes can be added on the spot.";
+            hint.textContent = "Press Enter or tap 📷 to scan. Unknown codes can be added on the spot.";
         }
     };
 
-    // Search bar input & enter key (barcode scanner support)
-    q.onkeydown = e => {
-        if (e.key !== "Enter") return;
-        const v = q.value.trim();
+    function triggerSearch(v) {
         if (!v) return;
-
         fetch(`/billing/api/search/?term=${encodeURIComponent(v)}`)
             .then(res => res.json())
             .then(data => {
@@ -361,25 +419,132 @@ document.addEventListener('DOMContentLoaded', function () {
                     q.value = "";
                     hint.textContent = "Added " + results[0].brand + " " + results[0].name;
                 } else if (results.length > 1) {
-                    hint.textContent = `Found ${results.length} matches. Click below to add.`;
+                    hint.textContent = `Found ${results.length} matches. Tap below to add.`;
                     renderSearchResults(results);
                 } else {
-                    // Unknown Barcode modal
                     hint.textContent = "Unknown barcode " + v + ". Enter brand, size and MRP to add it.";
                     openUnknownModal(v);
                 }
             })
             .catch(err => console.error("Search error:", err));
+    }
+
+    // Search bar input & enter key (barcode scanner support)
+    q.onkeydown = e => {
+        if (e.key !== "Enter") return;
+        const v = q.value.trim();
+        triggerSearch(v);
         e.target.select();
     };
 
     function renderSearchResults(items) {
         listEl.innerHTML = items.map((p, i) => `
-            <button class="row" style="--i:${i}" data-id="${p.id}" data-name="${p.brand} ${p.name}" data-size="${p.size_ml}" data-mrp="${p.mrp}" data-stock="${p.stock}">
-                <span class="name"><b>${p.brand} ${p.name}</b><small>${p.size_ml} ml · ${p.stock} in stock</small></span>
-                <span class="num">${fmt(p.mrp)}</span>
+            <button type="button" class="quick-pick-card" style="--i:${i}" data-id="${p.id}" data-name="${p.brand} ${p.name}" data-size="${p.size_ml}" data-mrp="${p.mrp}" data-stock="${p.stock}">
+                <div class="qp-title"><b>${p.brand}</b> ${p.name}</div>
+                <div class="qp-meta">
+                    <span>${p.size_ml}ml · ${p.stock} in stock</span>
+                    <span class="qp-price num">${fmt(p.mrp)}</span>
+                </div>
             </button>
         `).join("");
+    }
+
+    // Camera Barcode Scanner Engine for Mobile Phones
+    const camBtn = document.getElementById('cam-scan-btn');
+    const camModal = document.getElementById('camera-modal');
+    const camCloseBtn = document.getElementById('cam-close-btn');
+    const video = document.getElementById('scanner-video');
+    const camStatus = document.getElementById('cam-status');
+    const camFileInput = document.getElementById('cam-file-input');
+    let camStream = null;
+    let camScanInterval = null;
+
+    if (camBtn) {
+        camBtn.onclick = () => {
+            camModal.classList.add('open');
+            startCamera();
+        };
+    }
+    if (camCloseBtn) {
+        camCloseBtn.onclick = stopCamera;
+    }
+
+    function stopCamera() {
+        if (camScanInterval) {
+            clearInterval(camScanInterval);
+            camScanInterval = null;
+        }
+        if (camStream) {
+            camStream.getTracks().forEach(t => t.stop());
+            camStream = null;
+        }
+        camModal.classList.remove('open');
+    }
+
+    async function startCamera() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            camStatus.textContent = "Live camera preview not supported in this browser. Use Upload Photo below.";
+            return;
+        }
+        try {
+            camStatus.textContent = "Connecting to camera...";
+            camStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: "environment" } },
+                audio: false
+            });
+            video.srcObject = camStream;
+            await video.play();
+            camStatus.textContent = "Hold bottle barcode steady inside the frame...";
+
+            if ('BarcodeDetector' in window) {
+                const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'qr_code', 'upc_a', 'upc_e'] });
+                camScanInterval = setInterval(async () => {
+                    try {
+                        const barcodes = await detector.detect(video);
+                        if (barcodes && barcodes.length > 0) {
+                            const raw = barcodes[0].rawValue;
+                            stopCamera();
+                            window.toast("Scanned: " + raw);
+                            q.value = raw;
+                            triggerSearch(raw);
+                        }
+                    } catch (e) {}
+                }, 350);
+            } else {
+                camStatus.textContent = "Camera active. If barcode doesn't auto-detect, use Upload Photo below.";
+            }
+        } catch (err) {
+            camStatus.textContent = "Camera access denied. Please grant permission or use Upload Photo.";
+        }
+    }
+
+    if (camFileInput) {
+        camFileInput.onchange = async e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if ('BarcodeDetector' in window) {
+                try {
+                    const img = new Image();
+                    img.src = URL.createObjectURL(file);
+                    await img.decode();
+                    const detector = new BarcodeDetector();
+                    const barcodes = await detector.detect(img);
+                    if (barcodes && barcodes.length > 0) {
+                        const raw = barcodes[0].rawValue;
+                        stopCamera();
+                        window.toast("Scanned: " + raw);
+                        q.value = raw;
+                        triggerSearch(raw);
+                    } else {
+                        window.toast("No barcode found in image. Please try again or type barcode.");
+                    }
+                } catch (err) {
+                    window.toast("Could not read image barcode.");
+                }
+            } else {
+                window.toast("Barcode detector not supported. Please type barcode.");
+            }
+        };
     }
 
     // Payment Mode Segmented Control
