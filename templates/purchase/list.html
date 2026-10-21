@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Supplier Purchases - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h2>Supplier Purchase Invoices</h2>
+    <a href="{% url 'purchase_entry' %}" class="primary" style="padding:8px 14px; text-decoration:none; font-size:14px;">+ New Purchase Entry</a>
+  </div>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; overflow:hidden;">
+    {% for p in purchases %}
+      <div class="line" style="padding:12px 14px;">
+        <div class="top">
+          <div>
+            <b>Invoice #{{ p.invoice_number }}</b>
+            <small class="sub"> · {{ p.date|date:"d M Y" }} · {{ p.supplier.name|default:"Direct Purchase" }}</small>
+            <br>
+            <small class="sub">Entered by: {{ p.created_by.username }} · {{ p.items.count }} items</small>
+          </div>
+          <div style="text-align:right;">
+            <div class="num" style="font-size:18px; font-weight:700;">₹{{ p.total_amount|floatformat:2 }}</div>
+            <a href="{% url 'purchase_detail' p.id %}" class="theme-btn" style="text-decoration:none; font-size:11px; padding:3px 8px; margin-top:4px; display:inline-block;">View Items</a>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty">No supplier purchase invoices recorded yet.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

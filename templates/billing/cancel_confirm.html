@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Cancel Bill #{{ bill.bill_number }}{% endblock %}
+
+{% block content %}
+<div class="view on" style="max-width:520px; margin:30px auto;">
+  <h2 style="color:var(--warn);">Cancel Bill #{{ bill.bill_number }}</h2>
+  <div class="hint">Warning: Cancelling this bill will automatically reverse stock deductions, refund credit customer balance if applicable, and create a permanent audit log entry.</div>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:16px; margin:16px 0;">
+    <div><b>Date:</b> {{ bill.created_at|date:"d M Y H:i" }}</div>
+    <div><b>Billed Total:</b> ₹{{ bill.total_amount|floatformat:2 }} ({{ bill.get_payment_mode_display }})</div>
+    <div><b>Cashier:</b> {{ bill.created_by.username }}</div>
+    {% if bill.customer %}<div><b>Customer:</b> {{ bill.customer.name }} ({{ bill.customer.phone }})</div>{% endif %}
+
+    <div style="margin-top:12px; font-size:13px;">
+      <b>Items to return to stock:</b>
+      <ul style="margin-left:18px; margin-top:4px;">
+        {% for item in bill.items.all %}
+          <li>{{ item.product.brand }} {{ item.product.name }} ({{ item.product.size_ml }}ml) × {{ item.quantity }} bottles</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+    <label class="form-label">Reason for Cancellation (Required for Audit Log)</label>
+    <textarea name="cancellation_reason" class="form-input" rows="3" placeholder="e.g. Customer cancelled order / Wrong bottles scanned by cashier" required></textarea>
+
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button type="submit" class="primary" style="background:#7f1d1d; border-color:#dc2626; color:#fff; flex:1;">Confirm & Restore Stock</button>
+      <a href="{% url 'bill_list' %}" class="theme-btn" style="padding:14px; text-decoration:none;">Go Back</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

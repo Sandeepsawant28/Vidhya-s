@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+
+{% block title %}Daily Sales Report - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+    <h2>Daily Sales by Payment Mode</h2>
+    <div style="display:flex; gap:8px;">
+      <a href="?start_date={{ start_date }}&end_date={{ end_date }}&export=excel" class="theme-btn" style="text-decoration:none; padding:8px 12px; font-size:13px;">Download Excel</a>
+    </div>
+  </div>
+
+  <form method="get" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+    <input type="date" name="start_date" value="{{ start_date }}" class="form-input" style="width:160px; margin:0;">
+    <span style="align-self:center;">to</span>
+    <input type="date" name="end_date" value="{{ end_date }}" class="form-input" style="width:160px; margin:0;">
+    <button type="submit" class="theme-btn" style="padding:10px 16px;">Filter</button>
+  </form>
+
+  <!-- Summary Breakdown with Animated Bars -->
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:14px; margin-bottom:18px;">
+    <div class="line">
+      <div class="top">
+        <span>Cash Sales</span>
+        <span class="num">₹{{ summary.cash_total|floatformat:2 }}</span>
+      </div>
+      <div class="bar">
+        <span data-w="{% widthratio summary.cash_total summary.total_sales 100 %}"></span>
+      </div>
+    </div>
+
+    <div class="line">
+      <div class="top">
+        <span>UPI / QR Sales</span>
+        <span class="num">₹{{ summary.upi_total|floatformat:2 }}</span>
+      </div>
+      <div class="bar">
+        <span data-w="{% widthratio summary.upi_total summary.total_sales 100 %}"></span>
+      </div>
+    </div>
+
+    <div class="line">
+      <div class="top">
+        <span>Card Sales</span>
+        <span class="num">₹{{ summary.card_total|floatformat:2 }}</span>
+      </div>
+      <div class="bar">
+        <span data-w="{% widthratio summary.card_total summary.total_sales 100 %}"></span>
+      </div>
+    </div>
+
+    <div class="line">
+      <div class="top">
+        <span>Credit Sales</span>
+        <span class="num">₹{{ summary.credit_total|floatformat:2 }}</span>
+      </div>
+      <div class="bar">
+        <span data-w="{% widthratio summary.credit_total summary.total_sales 100 %}"></span>
+      </div>
+    </div>
+
+    <div class="total" style="border-top:1px dashed var(--line); margin-top:14px; padding-top:14px;">
+      <span class="sub">Total Sales ({{ summary.bill_count }} Bills)</span>
+      <span class="num">₹{{ summary.total_sales|floatformat:2 }}</span>
+    </div>
+  </div>
+
+  <h2>Report Navigation</h2>
+  <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+    <a href="{% url 'report_daily_closing' %}" class="theme-btn" style="text-decoration:none; padding:6px 12px; font-size:13px;">Daily Closing</a>
+    <a href="{% url 'report_profit_by_brand' %}" class="theme-btn" style="text-decoration:none; padding:6px 12px; font-size:13px;">Profit by Brand</a>
+    <a href="{% url 'report_low_stock' %}" class="theme-btn" style="text-decoration:none; padding:6px 12px; font-size:13px;">Low Stock</a>
+    <a href="{% url 'report_fast_slow_movers' %}" class="theme-btn" style="text-decoration:none; padding:6px 12px; font-size:13px;">Fast/Slow Movers</a>
+    <a href="{% url 'report_credit_outstanding' %}" class="theme-btn" style="text-decoration:none; padding:6px 12px; font-size:13px;">Credit Balances</a>
+  </div>
+
+  <!-- Detailed Bills List -->
+  <h2>Bills in this period</h2>
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; overflow:hidden;">
+    {% for b in bills %}
+      <div class="line" style="padding:10px 14px;">
+        <div class="top">
+          <div>
+            <b>{{ b.bill_number }}</b> · <small class="sub">{{ b.created_at|date:"d M Y, H:i" }} · {{ b.get_payment_mode_display }}</small>
+            {% if b.customer %}<br><small class="sub">Customer: {{ b.customer.name }}</small>{% endif %}
+          </div>
+          <div style="text-align:right;">
+            <span class="num" style="font-weight:700;">₹{{ b.total_amount|floatformat:2 }}</span>
+            <div><a href="{% url 'receipt' b.id %}" target="_blank" style="color:var(--gold); font-size:11px; text-decoration:none;">View Slip</a></div>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty">No completed bills recorded in this date range.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.bar span[data-w]').forEach(s => {
+            s.style.width = (parseInt(s.dataset.w) || 0) + '%';
+        });
+    });
+});
+</script>
+{% endblock %}

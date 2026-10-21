@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Setup Wizard - Vidya’s Liquor Loft{% endblock %}
+
+{% block content %}
+<div class="view on" style="max-width:540px; margin:20px auto;">
+  <h2>Store Setup Wizard</h2>
+  <div class="hint">Welcome! Configure your shop details and create the primary Owner account. This runs only once.</div>
+
+  <form method="post" style="background:var(--surface); padding:20px; border:1px solid var(--line); border-radius:4px; margin-top:14px;">
+    {% csrf_token %}
+
+    <div style="margin-bottom:14px;">
+      <label class="form-label">Shop / Trade Name</label>
+      {{ form.shop_name }}
+      {{ form.shop_name.errors }}
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <label class="form-label">Shop Address</label>
+      {{ form.address }}
+      {{ form.address.errors }}
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+      <div>
+        <label class="form-label">Contact Phone</label>
+        {{ form.phone }}
+        {{ form.phone.errors }}
+      </div>
+      <div>
+        <label class="form-label">Excise Licence / FL No.</label>
+        {{ form.licence_number }}
+        {{ form.licence_number.errors }}
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <label class="form-label">GSTIN (Optional)</label>
+      {{ form.gst_number }}
+      {{ form.gst_number.errors }}
+    </div>
+
+    <hr style="border:none; border-top:1px dashed var(--line); margin:18px 0;">
+    <h3 style="font-size:16px; margin-bottom:10px; color:var(--gold);">Owner Credentials (No Default Password)</h3>
+
+    <div style="margin-bottom:14px;">
+      <label class="form-label">Owner Username</label>
+      {{ form.owner_username }}
+      {{ form.owner_username.errors }}
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px;">
+      <div>
+        <label class="form-label">Password</label>
+        {{ form.owner_password }}
+        {{ form.owner_password.errors }}
+      </div>
+      <div>
+        <label class="form-label">Confirm Password</label>
+        {{ form.confirm_password }}
+        {{ form.confirm_password.errors }}
+      </div>
+    </div>
+
+    <button type="submit" class="primary">Complete Setup & Launch Store</button>
+  </form>
+</div>
+{% endblock %}

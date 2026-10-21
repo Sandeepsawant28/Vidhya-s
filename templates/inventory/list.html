@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}Stock on Hand - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+    <h2>Stock on Hand</h2>
+    <div style="display:flex; gap:8px;">
+      {% if is_owner %}
+        <a href="{% url 'product_create' %}" class="primary" style="padding:8px 12px; font-size:13px; text-decoration:none;">+ Add Product</a>
+        <a href="{% url 'product_import' %}" class="theme-btn" style="padding:8px 12px; font-size:13px; text-decoration:none;">Import Excel</a>
+      {% endif %}
+      <a href="{% url 'product_export' %}" class="theme-btn" style="padding:8px 12px; font-size:13px; text-decoration:none;">Export Excel</a>
+    </div>
+  </div>
+
+  <!-- Real-Time Interactive Filter Form -->
+  <form id="stock-filter-form" method="get" onsubmit="event.preventDefault(); filterStock();" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+    <input type="text" id="stock-search" name="q" value="{{ query }}" class="search" placeholder="Filter brand, name, or barcode in real-time..." style="flex:1; min-width:200px; padding:10px;" autocomplete="off" autofocus>
+    <select id="stock-category" name="category" class="form-select" style="width:auto; min-width:140px; margin:0; padding:10px;">
+      <option value="">All Categories</option>
+      {% for cat_val, cat_label in categories %}
+        <option value="{{ cat_val }}" {% if selected_category == cat_val %}selected{% endif %}>{{ cat_label }}</option>
+      {% endfor %}
+    </select>
+    <label style="display:flex; align-items:center; gap:6px; font-size:13px; background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:0 12px; cursor:pointer;">
+      <input type="checkbox" id="stock-low-checkbox" name="low_stock" value="1" {% if low_stock_filter == '1' %}checked{% endif %}> Low Stock
+    </label>
+    <button type="button" id="reset-filter-btn" class="theme-btn" style="padding:10px 14px;">Reset</button>
+  </form>
+
+  <!-- Stock Catalog Items -->
+  <div id="stock-list" style="background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:4px 12px;">
+    {% for p in products %}
+      <div class="line row stock-item" 
+           data-brand="{{ p.brand|lower }}" 
+           data-name="{{ p.name|lower }}" 
+           data-category="{{ p.category }}" 
+           data-barcode="{{ p.barcode|default:'' }}" 
+           data-stock="{{ p.calculated_stock }}" 
+           data-reorder="{{ p.reorder_level }}"
+           data-is-low="{% if p.calculated_stock <= p.reorder_level %}1{% else %}0{% endif %}"
+           style="--i:{{ forloop.counter0 }};">
+        <div style="width:100%;">
+          <div class="top">
+            <span>
+              <b>{{ p.brand }} {{ p.name }} ({{ p.size_ml }}ml)</b>
+              <small class="sub">
+                {{ p.category }} · Barcode: {{ p.barcode|default:"None" }} · MRP: ₹{{ p.mrp|floatformat:2 }}
+                {% if is_owner %} · Cost: ₹{{ p.purchase_price|floatformat:2 }}{% endif %}
+              </small>
+              {% if p.calculated_stock <= p.reorder_level %}
+                <span class="tag">Low stock ({{ p.calculated_stock }} left)</span>
+              {% endif %}
+            </span>
+            <div style="text-align:right;">
+              <span class="num" style="font-size:20px; font-weight:700;">{{ p.calculated_stock }}</span>
+              <div style="font-size:11px; margin-top:2px;">
+                <a href="{% url 'product_edit' p.id %}" style="color:var(--gold); text-decoration:none;">Edit</a>
+              </div>
+            </div>
+          </div>
+          <div class="bar {% if p.calculated_stock <= p.reorder_level %}low{% endif %}">
+            <span data-w="{% widthratio p.calculated_stock p.reorder_level|default:10 100 %}"></span>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty">No products found in database.</div>
+    {% endfor %}
+    <div class="empty" id="stock-empty-msg" style="display:none; padding:24px 0;">No products match your filter criteria.</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('stock-search');
+    const categorySelect = document.getElementById('stock-category');
+    const lowStockCheck = document.getElementById('stock-low-checkbox');
+    const resetBtn = document.getElementById('reset-filter-btn');
+    const items = document.querySelectorAll('.stock-item');
+    const emptyMsg = document.getElementById('stock-empty-msg');
+
+    // Real-time instant filtering function
+    window.filterStock = function () {
+        const q = searchInput.value.trim().toLowerCase();
+        const cat = categorySelect.value;
+        const onlyLow = lowStockCheck.checked;
+        let visibleCount = 0;
+
+        items.forEach(item => {
+            const brand = item.dataset.brand || '';
+            const name = item.dataset.name || '';
+            const barcode = item.dataset.barcode || '';
+            const category = item.dataset.category || '';
+            const isLow = item.dataset.isLow === '1';
+
+            const matchesText = !q || brand.includes(q) || name.includes(q) || barcode.includes(q);
+            const matchesCat = !cat || category === cat;
+            const matchesLow = !onlyLow || isLow;
+
+            if (matchesText && matchesCat && matchesLow) {
+                item.style.display = '';
+                visibleCount++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+
+        if (emptyMsg) {
+            emptyMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+    };
+
+    // Trigger instant filtering on every keystroke, dropdown change, and checkbox toggle
+    searchInput.addEventListener('input', filterStock);
+    categorySelect.addEventListener('change', filterStock);
+    lowStockCheck.addEventListener('change', filterStock);
+
+    resetBtn.addEventListener('click', function () {
+        searchInput.value = '';
+        categorySelect.value = '';
+        lowStockCheck.checked = false;
+        filterStock();
+        searchInput.focus();
+    });
+
+    // Run initial filter in case pre-filled
+    filterStock();
+
+    // Animate stock progress bars
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.bar span[data-w]').forEach(s => {
+            const w = Math.min(100, Math.max(8, parseInt(s.dataset.w) || 0));
+            s.style.width = w + '%';
+        });
+    });
+});
+</script>
+{% endblock %}

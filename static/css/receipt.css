@@ -1,0 +1,115 @@
+/* 80mm POS Thermal Slip Receipt CSS */
+body.receipt-page {
+  background-color: #f1f5f9;
+  color: #000;
+  font-family: 'Courier New', Courier, monospace, 'Segoe UI', sans-serif;
+  padding: 1rem;
+}
+
+.receipt-container {
+  width: 78mm;
+  margin: 0 auto;
+  background-color: #fff;
+  padding: 4mm 3mm;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  font-size: 12px;
+  line-height: 1.25;
+  color: #000;
+}
+
+.receipt-header {
+  text-align: center;
+  margin-bottom: 6px;
+}
+.receipt-shop-name {
+  font-size: 16px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.receipt-meta {
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.receipt-divider {
+  border: none;
+  border-top: 1px dashed #000;
+  margin: 4px 0;
+}
+.receipt-divider-double {
+  border: none;
+  border-top: 2px solid #000;
+  margin: 5px 0;
+}
+
+.receipt-info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.receipt-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4px 0;
+  font-size: 11px;
+}
+.receipt-table th {
+  border-bottom: 1px dashed #000;
+  padding: 2px 0;
+  text-align: left;
+}
+.receipt-table td {
+  padding: 3px 0;
+  vertical-align: top;
+}
+.receipt-table .col-name { width: 50%; }
+.receipt-table .col-qty { width: 15%; text-align: center; }
+.receipt-table .col-rate { width: 15%; text-align: right; }
+.receipt-table .col-total { width: 20%; text-align: right; }
+
+.receipt-totals-table {
+  width: 100%;
+  font-size: 12px;
+}
+.receipt-totals-table td {
+  padding: 1px 0;
+}
+.receipt-grand-total {
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.receipt-footer {
+  text-align: center;
+  font-size: 10px;
+  margin-top: 8px;
+  line-height: 1.3;
+}
+
+.no-print-toolbar {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+  body.receipt-page {
+    background: transparent;
+    padding: 0;
+    margin: 0;
+  }
+  .no-print-toolbar {
+    display: none !important;
+  }
+  .receipt-container {
+    width: 76mm;
+    margin: 0;
+    padding: 2mm;
+    box-shadow: none;
+  }
+}

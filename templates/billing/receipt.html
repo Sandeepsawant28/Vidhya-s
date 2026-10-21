@@ -1,0 +1,114 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Receipt #{{ bill.bill_number }}</title>
+  <link rel="stylesheet" href="{% static 'css/receipt.css' %}">
+</head>
+<body class="receipt-page">
+  <div class="no-print-toolbar">
+    <button onclick="window.print()" style="padding:8px 16px; background:#1e293b; color:#fff; border:none; border-radius:4px; cursor:pointer; font-weight:bold;">Print Slip</button>
+    <button onclick="window.close()" style="padding:8px 16px; background:#64748b; color:#fff; border:none; border-radius:4px; cursor:pointer; margin-left:8px;">Close</button>
+  </div>
+
+  <div class="receipt-container">
+    <div class="receipt-header">
+      <img src="{% static 'img/logo.jpg' %}" alt="Logo" style="width:48px; height:48px; object-fit:contain; margin-bottom:4px; filter:grayscale(100%);">
+      <div class="receipt-shop-name">{{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}</div>
+      <div class="receipt-meta">{{ shop_settings.address|default:"Fatorda, Goa" }}</div>
+      <div class="receipt-meta">Phone: {{ shop_settings.phone|default:"7666208703" }}</div>
+      {% if shop_settings.licence_number %}
+        <div class="receipt-meta">Licence No: {{ shop_settings.licence_number }}</div>
+      {% endif %}
+      {% if shop_settings.gst_number %}
+        <div class="receipt-meta">GSTIN: {{ shop_settings.gst_number }}</div>
+      {% endif %}
+    </div>
+
+    <hr class="receipt-divider">
+
+    <div class="receipt-info-row">
+      <span>Bill: <b>{{ bill.bill_number }}</b></span>
+      <span>{{ bill.created_at|date:"d/m/Y H:i" }}</span>
+    </div>
+    <div class="receipt-info-row">
+      <span>Cashier: {{ bill.created_by.username }}</span>
+      <span>Pay: <b>{{ bill.get_payment_mode_display }}</b></span>
+    </div>
+    {% if bill.customer %}
+      <div class="receipt-info-row">
+        <span>Cust: {{ bill.customer.name }}</span>
+        <span>Ph: {{ bill.customer.phone }}</span>
+      </div>
+    {% endif %}
+
+    <hr class="receipt-divider">
+
+    <table class="receipt-table">
+      <thead>
+        <tr>
+          <th class="col-name">Item</th>
+          <th class="col-qty">Qty</th>
+          <th class="col-rate">Rate</th>
+          <th class="col-total">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+          <tr>
+            <td class="col-name">{{ item.product.brand }} {{ item.product.name }} ({{ item.product.size_ml }}ml)</td>
+            <td class="col-qty">{{ item.quantity }}</td>
+            <td class="col-rate">₹{{ item.unit_price|floatformat:2 }}</td>
+            <td class="col-total">₹{{ item.total_price|floatformat:2 }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <hr class="receipt-divider">
+
+    <table class="receipt-totals-table">
+      <tr>
+        <td>Subtotal:</td>
+        <td style="text-align:right;">₹{{ bill.subtotal|floatformat:2 }}</td>
+      </tr>
+      {% if bill.discount_amount > 0 %}
+        <tr>
+          <td>Discount:</td>
+          <td style="text-align:right;">-₹{{ bill.discount_amount|floatformat:2 }}</td>
+        </tr>
+      {% endif %}
+      <tr class="receipt-grand-total">
+        <td>TOTAL PAYABLE:</td>
+        <td style="text-align:right;">₹{{ bill.total_amount|floatformat:2 }}</td>
+      </tr>
+    </table>
+
+    {% if bill.payment_mode == 'SPLIT' %}
+      <hr class="receipt-divider">
+      <div style="font-size:10px;">
+        <span>Split Details:</span>
+        {% if bill.cash_paid > 0 %}Cash: ₹{{ bill.cash_paid|floatformat:2 }} | {% endif %}
+        {% if bill.upi_paid > 0 %}UPI: ₹{{ bill.upi_paid|floatformat:2 }} | {% endif %}
+        {% if bill.card_paid > 0 %}Card: ₹{{ bill.card_paid|floatformat:2 }} | {% endif %}
+        {% if bill.credit_paid > 0 %}Credit: ₹{{ bill.credit_paid|floatformat:2 }}{% endif %}
+      </div>
+    {% endif %}
+
+    <hr class="receipt-divider-double">
+
+    <div class="receipt-footer">
+      <div>{{ shop_settings.receipt_footer|linebreaksbr }}</div>
+    </div>
+  </div>
+
+  {% if autoprint %}
+    <script>
+      window.onload = function() {
+        window.print();
+      };
+    </script>
+  {% endif %}
+</body>
+</html>

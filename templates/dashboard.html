@@ -1,0 +1,275 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Vidya’s Liquor Loft{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="dash view on">
+
+  <!-- 1. Compact Header: Greeting & Date -->
+  <header class="dash-section dash-header" style="--dash-i: 0;">
+    <div class="dash-greeting-wrap">
+      <div class="dash-greeting">{{ greeting }}, {{ request.user.username|title }}</div>
+      <div class="dash-date">{{ today|date:"l, j F Y" }}</div>
+    </div>
+    <div class="dash-header-status">
+      <span class="dash-status-dot"></span> Offline Local Server &middot; http://{{ local_ip }}:8000
+    </div>
+  </header>
+
+  <!-- 3-Column Compact Executive Grid (Fits on screen without vertical scrolling) -->
+  <div class="dash-grid">
+
+    <!-- Column 1: Sales Hub (Hero Card, Billing Button & Payment Breakdown) -->
+    <div class="dash-col" style="--dash-i: 1;">
+      <!-- 2. Hero: Today's Total Sales -->
+      <div class="dash-hero">
+        <div class="dash-hero-top">
+          <div class="dash-hero-label">Today's Total Sales</div>
+          <div class="dash-hero-diff {{ sales_diff_dir }}">{{ sales_diff_text }}</div>
+        </div>
+        <div class="dash-hero-num num" id="dash-hero-counter" data-target="{{ today_sales }}">₹{{ formatted_today_sales }}</div>
+        <div class="dash-hero-meta">
+          <span>{{ today_bills_label }} recorded today</span>
+        </div>
+      </div>
+
+      <!-- 3. Prominent Billing Button -->
+      <a href="{% url 'pos' %}" class="dash-btn-billing">Open billing screen</a>
+
+      <!-- 4. Today by Payment Mode -->
+      <div class="dash-card">
+        <h2 class="dash-title">Today by payment mode</h2>
+        <div class="dash-modes-list">
+          {% for mode in payment_modes %}
+            <div class="dash-mode-row">
+              <div class="dash-mode-info">
+                <span class="dash-mode-name">{{ mode.name }}</span>
+                <span class="dash-mode-val num">₹{{ mode.formatted }}</span>
+              </div>
+              <div class="dash-bar-track">
+                <span class="dash-bar-fill" data-width="{{ mode.pct }}"></span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Column 2: Activity & Financial Insights (7-Day Chart, Credit, Profit) -->
+    <div class="dash-col dash-col-chart" style="--dash-i: 2;">
+      <!-- 5. Last 7 Days Flat Bar Chart -->
+      <div class="dash-card dash-chart-card">
+        <h2 class="dash-title">Last 7 days of sales</h2>
+        <div class="dash-chart-grid">
+          {% for day in last_7_days %}
+            <div class="dash-chart-col">
+              <span class="dash-chart-amt num">₹{{ day.formatted }}</span>
+              <div class="dash-chart-bar-wrap">
+                <div class="dash-chart-bar {% if day.is_today %}is-today{% endif %}" data-height="{{ day.height_pct }}"></div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="dash-chart-labels">
+          {% for day in last_7_days %}
+            <span class="dash-chart-lbl {% if day.is_today %}is-today{% endif %}">{{ day.day_name }} {{ day.day_num }}</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- 8. Credit Outstanding -->
+      <div class="dash-card dash-credit-card">
+        <div class="dash-credit-info">
+          <div class="dash-credit-label">Credit Outstanding</div>
+          <div class="dash-credit-total num">₹{{ formatted_total_credit }}</div>
+        </div>
+        <a href="{% url 'customer_list' %}" class="dash-link">Ledger &rarr;</a>
+      </div>
+
+      <!-- 9. Owner Only: Today's Profit (Hidden for Cashiers) -->
+      {% if is_owner %}
+        <div class="dash-card dash-profit-card">
+          <div class="dash-profit-top">
+            <div>
+              <div class="dash-hero-label">Estimated Gross Profit</div>
+              <div class="dash-profit-amt num">₹{{ today_profit_formatted }}</div>
+            </div>
+            <div class="dash-profit-margin">Margin: {{ today_margin }}</div>
+          </div>
+          <div class="dash-profit-note">Sales today minus bottle purchase cost price. Shop owners only.</div>
+        </div>
+      {% else %}
+        <div class="dash-card dash-wifi-card">
+          <div class="dash-hero-label">Shop Wi-Fi Phone Billing</div>
+          <div class="dash-wifi-url">http://{{ local_ip }}:8000</div>
+          <div class="dash-profit-note">Staff can connect to shop Wi-Fi and bill from phones.</div>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Column 3: Stock & Transactions (Low Stock Alerts & Recent Bills) -->
+    <div class="dash-col" style="--dash-i: 3;">
+      <!-- 6. Low Stock (6 Lowest at or below Reorder Level) -->
+      <div class="dash-card">
+        <div class="dash-title-row">
+          <h2 class="dash-title">Low stock</h2>
+          <a href="{% url 'product_list' %}" class="dash-link">View all &rarr;</a>
+        </div>
+        <div class="dash-stock-list">
+          {% if low_stock_items %}
+            {% for p in low_stock_items|slice:":4" %}
+              <div class="dash-stock-row">
+                <div class="dash-stock-top">
+                  <span class="dash-stock-name">{{ p.brand }} {{ p.name }} <small>{{ p.size_ml }}ml</small></span>
+                  <span class="dash-stock-badge num">{{ p.stock }} left</span>
+                </div>
+                <div class="dash-stock-bar">
+                  <span class="dash-stock-fill" data-width="{{ p.pct }}"></span>
+                </div>
+              </div>
+            {% endfor %}
+          {% else %}
+            <div class="dash-empty">All stocked. Every product is currently above reorder level.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- 7. Recent Bills (Last 4-5) -->
+      <div class="dash-card">
+        <div class="dash-title-row">
+          <h2 class="dash-title">Recent bills</h2>
+          {% if is_owner %}
+            <a href="{% url 'report_daily_sales' %}" class="dash-link">Reports &rarr;</a>
+          {% endif %}
+        </div>
+        <div class="dash-bills-list">
+          {% if recent_bills %}
+            {% for b in recent_bills|slice:":4" %}
+              <a href="{% url 'receipt' b.id %}" target="_blank" class="dash-bill-item" title="View receipt {{ b.bill_number }}">
+                <div class="dash-bill-info">
+                  <span class="dash-bill-num">{{ b.bill_number }}</span>
+                  <span class="dash-bill-sub">{{ b.time_str }} &middot; {{ b.payment_mode }} &middot; {{ b.cashier }}</span>
+                </div>
+                <span class="dash-bill-amt num">₹{{ b.formatted }}</span>
+              </a>
+            {% endfor %}
+          {% else %}
+            <div class="dash-empty">No bills recorded yet today.</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 10. Store Actions Strip -->
+  <div class="dash-actions-bar" style="--dash-i: 4;">
+    <div class="dash-actions-title">Store actions</div>
+    <div class="dash-actions-grid">
+      <a href="{% url 'product_list' %}" class="dash-action-btn">
+        <span class="dash-action-num">1</span>
+        <div class="dash-action-text">
+          <strong>Stock Catalog</strong>
+          <small>Search & counts</small>
+        </div>
+      </a>
+      {% if is_owner %}
+        <a href="{% url 'purchase_entry' %}" class="dash-action-btn">
+          <span class="dash-action-num">2</span>
+          <div class="dash-action-text">
+            <strong>Purchase Entry</strong>
+            <small>Add stock invoices</small>
+          </div>
+        </a>
+        <a href="{% url 'report_daily_closing' %}" class="dash-action-btn">
+          <span class="dash-action-num">3</span>
+          <div class="dash-action-text">
+            <strong>Daily Closing</strong>
+            <small>Verify cash drawer</small>
+          </div>
+        </a>
+      {% endif %}
+      <a href="{% url 'network_info' %}" class="dash-action-btn">
+        <span class="dash-action-num">{% if is_owner %}4{% else %}2{% endif %}</span>
+        <div class="dash-action-text">
+          <strong>Wi-Fi Phone Access</strong>
+          <small>http://{{ local_ip }}:8000</small>
+        </div>
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // 1. Indian Currency Formatter for JS Animation
+    function formatIndian(val) {
+        var num = Math.round(val);
+        var s = num.toString();
+        var neg = s.charAt(0) === '-';
+        if (neg) s = s.substring(1);
+        if (s.length > 3) {
+            var last3 = s.substring(s.length - 3);
+            var rest = s.substring(0, s.length - 3);
+            var g = [];
+            while (rest.length > 0) {
+                var take = rest.length >= 2 ? 2 : 1;
+                g.unshift(rest.substring(rest.length - take));
+                rest = rest.substring(0, rest.length - take);
+            }
+            s = g.join(',') + ',' + last3;
+        }
+        return (neg ? '-₹' : '₹') + s + '.00';
+    }
+
+    // 2. Count-Up Animation on Hero Total Sales
+    var counterEl = document.getElementById('dash-hero-counter');
+    if (counterEl) {
+        var targetVal = parseFloat(counterEl.getAttribute('data-target')) || 0;
+        var isCalm = document.documentElement.classList.contains('calm');
+
+        if (isCalm || targetVal <= 0) {
+            counterEl.textContent = formatIndian(targetVal);
+        } else {
+            var startTime = performance.now();
+            var duration = 600; // ms
+            function tick(now) {
+                var elapsed = now - startTime;
+                var progress = Math.min(1, elapsed / duration);
+                var ease = 1 - Math.pow(1 - progress, 3);
+                var current = targetVal * ease;
+                counterEl.textContent = formatIndian(current);
+                if (progress < 1) {
+                    requestAnimationFrame(tick);
+                } else {
+                    counterEl.textContent = formatIndian(targetVal);
+                }
+            }
+            requestAnimationFrame(tick);
+        }
+    }
+
+    // 3. Animated Growth for Horizontal Bars (Payment Modes & Low Stock)
+    requestAnimationFrame(function () {
+        document.querySelectorAll('.dash-bar-fill, .dash-stock-fill').forEach(function (bar) {
+            var w = bar.getAttribute('data-width') || '0';
+            bar.style.width = w + '%';
+        });
+
+        // 4. Animated Growth for 7-Day Flat Vertical Bars
+        document.querySelectorAll('.dash-chart-bar').forEach(function (bar) {
+            var h = bar.getAttribute('data-height') || '0';
+            bar.style.height = h + '%';
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on" style="max-width:540px; margin:20px auto;">
+  <h2>{{ title }}</h2>
+  <div class="hint">Liquor catalog item details. Live stock is automatically tracked from StockMovements.</div>
+
+  <form method="post" style="background:var(--surface); padding:20px; border:1px solid var(--line); border-radius:4px; margin-top:14px;">
+    {% csrf_token %}
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+      <div>
+        <label class="form-label">Brand</label>
+        {{ form.brand }}
+        {{ form.brand.errors }}
+      </div>
+      <div>
+        <label class="form-label">Product Name</label>
+        {{ form.name }}
+        {{ form.name.errors }}
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+      <div>
+        <label class="form-label">Category</label>
+        {{ form.category }}
+        {{ form.category.errors }}
+      </div>
+      <div>
+        <label class="form-label">Volume (ml)</label>
+        {{ form.size_ml }}
+        {{ form.size_ml.errors }}
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label class="form-label">Barcode (Scan with barcode scanner)</label>
+      {{ form.barcode }}
+      {{ form.barcode.errors }}
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+      <div>
+        <label class="form-label">Maximum Retail Price (₹)</label>
+        {{ form.mrp }}
+        {{ form.mrp.errors }}
+      </div>
+      <div>
+        <label class="form-label">Purchase / Cost Price (₹)</label>
+        {{ form.purchase_price }}
+        {{ form.purchase_price.errors }}
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+      <div>
+        <label class="form-label">Reorder Alert Level</label>
+        {{ form.reorder_level }}
+        {{ form.reorder_level.errors }}
+      </div>
+      {% if not is_edit %}
+      <div>
+        <label class="form-label">Opening Stock (bottles)</label>
+        <input type="number" name="opening_stock" class="form-input" value="10" min="0">
+      </div>
+      {% endif %}
+    </div>
+
+    <div style="display:flex; gap:18px; margin-bottom:18px; font-size:14px;">
+      <label style="display:flex; align-items:center; gap:6px;">
+        {{ form.is_quick_pick }} Show in Quick-Pick buttons
+      </label>
+      <label style="display:flex; align-items:center; gap:6px;">
+        {{ form.is_active }} Active for sale
+      </label>
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <button type="submit" class="primary" style="flex:1;">Save Product</button>
+      <a href="{% url 'product_list' %}" class="theme-btn" style="padding:14px; text-decoration:none;">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

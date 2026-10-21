@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Profit by Brand - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+    <h2>Profit by Brand</h2>
+    <a href="?start_date={{ start_date }}&end_date={{ end_date }}&export=excel" class="theme-btn" style="text-decoration:none; padding:8px 12px; font-size:13px;">Download Excel</a>
+  </div>
+
+  <form method="get" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+    <input type="date" name="start_date" value="{{ start_date }}" class="form-input" style="width:160px; margin:0;">
+    <span style="align-self:center;">to</span>
+    <input type="date" name="end_date" value="{{ end_date }}" class="form-input" style="width:160px; margin:0;">
+    <button type="submit" class="theme-btn" style="padding:10px 16px;">Filter</button>
+  </form>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:14px;">
+    {% for r in results %}
+      <div class="line">
+        <div class="top">
+          <span>
+            <b>{{ r.brand }}</b>
+            <small class="sub"> · {{ r.bottles_sold }} bottles · Revenue: ₹{{ r.revenue|floatformat:2 }} · Cost: ₹{{ r.cost|floatformat:2 }}</small>
+          </span>
+          <div style="text-align:right;">
+            <span class="num" style="font-size:18px; font-weight:700; color:var(--gold);">₹{{ r.profit|floatformat:2 }}</span>
+            <div style="font-size:11px; color:var(--mute);">Margin: {{ r.margin }}%</div>
+          </div>
+        </div>
+        <div class="bar">
+          <span data-w="{{ r.margin|default:20 }}"></span>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty">No sales recorded during this date period.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.bar span[data-w]').forEach(s => {
+            const w = Math.min(100, Math.max(5, parseFloat(s.dataset.w) || 0));
+            s.style.width = w + '%';
+        });
+    });
+});
+</script>
+{% endblock %}

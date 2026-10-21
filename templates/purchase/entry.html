@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+
+{% block title %}Supplier Purchase Entry - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on">
+  <h2>Supplier Purchase Invoice Entry</h2>
+  <div class="hint">Enter incoming distributor invoices. Saving increases live stock and logs purchase movements.</div>
+
+  <form method="post" id="purchase-form" style="background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:20px; margin-top:14px;">
+    {% csrf_token %}
+    
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:16px;">
+      <div>
+        <label class="form-label">Distributor / Supplier</label>
+        <select name="supplier" class="form-select" required>
+          <option value="">-- Choose Supplier --</option>
+          {% for s in suppliers %}
+            <option value="{{ s.id }}">{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">Invoice / Pass Number</label>
+        <input type="text" name="invoice_number" class="form-input" placeholder="e.g. INV-2026-9041" required>
+      </div>
+
+      <div>
+        <label class="form-label">Invoice Date</label>
+        <input type="date" name="date" class="form-input" value="{{ today|date:'Y-m-d' }}" required>
+      </div>
+    </div>
+
+    <h3 style="margin:16px 0 8px; font-size:16px; color:var(--gold);">Invoice Line Items</h3>
+    <div style="overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse; font-size:13px;" id="items-table">
+        <thead>
+          <tr style="border-bottom:1px solid var(--line); text-align:left; color:var(--mute);">
+            <th style="padding:8px;">Product</th>
+            <th style="padding:8px; width:120px;">Bottles (Qty)</th>
+            <th style="padding:8px; width:140px;">Cost Price (₹)</th>
+            <th style="padding:8px; width:140px; text-align:right;">Total (₹)</th>
+            <th style="padding:8px; width:40px;"></th>
+          </tr>
+        </thead>
+        <tbody id="items-body">
+          <!-- Rows will be dynamically rendered -->
+        </tbody>
+      </table>
+    </div>
+
+    <button type="button" class="theme-btn" id="add-row-btn" style="margin-top:12px; padding:8px 14px;">+ Add Bottle Item</button>
+
+    <div class="total" style="border-top:1px dashed var(--line); margin-top:16px;">
+      <span class="sub">Total Invoice Cost</span>
+      <span class="num" id="inv-total">₹0.00</span>
+    </div>
+
+    <input type="hidden" name="items_json" id="items-json">
+
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button type="submit" class="primary" style="flex:1;">Save Invoice & Update Stock</button>
+      <a href="{% url 'purchase_list' %}" class="theme-btn" style="padding:14px; text-decoration:none;">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<!-- Product options cache for JS -->
+<div id="product-options-data" style="display:none;">
+  {% for p in products %}
+    <option value="{{ p.id }}" data-price="{{ p.purchase_price }}">{{ p.brand }} {{ p.name }} ({{ p.size_ml }}ml)</option>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const optionsHtml = document.getElementById('product-options-data').innerHTML;
+    const itemsBody = document.getElementById('items-body');
+    const addRowBtn = document.getElementById('add-row-btn');
+    const invTotalEl = document.getElementById('inv-total');
+    const itemsJsonInput = document.getElementById('items-json');
+    const form = document.getElementById('purchase-form');
+
+    function addRow() {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--line)';
+        tr.innerHTML = `
+            <td style="padding:6px;">
+                <select class="form-select item-prod" style="margin:0; padding:6px;">
+                    <option value="">-- Choose Product --</option>
+                    ${optionsHtml}
+                </select>
+            </td>
+            <td style="padding:6px;">
+                <input type="number" class="form-input item-qty" value="12" min="1" style="margin:0; padding:6px; text-align:center;">
+            </td>
+            <td style="padding:6px;">
+                <input type="number" step="0.01" class="form-input item-price" value="0.00" style="margin:0; padding:6px; text-align:right;">
+            </td>
+            <td style="padding:6px; text-align:right; font-weight:600;" class="item-line-total">₹0.00</td>
+            <td style="padding:6px; text-align:center;">
+                <button type="button" style="color:var(--warn); font-size:18px; cursor:pointer;" class="del-row">&times;</button>
+            </td>
+        `;
+        itemsBody.appendChild(tr);
+
+        const prodSelect = tr.querySelector('.item-prod');
+        const priceInput = tr.querySelector('.item-price');
+        prodSelect.onchange = function () {
+            const opt = prodSelect.options[prodSelect.selectedIndex];
+            const p = opt.dataset.price || "0.00";
+            priceInput.value = parseFloat(p).toFixed(2);
+            calcInvoice();
+        };
+
+        tr.querySelector('.item-qty').oninput = calcInvoice;
+        priceInput.oninput = calcInvoice;
+        tr.querySelector('.del-row').onclick = function () {
+            tr.remove();
+            calcInvoice();
+        };
+        calcInvoice();
+    }
+
+    function calcInvoice() {
+        let total = 0;
+        const rows = itemsBody.querySelectorAll('tr');
+        rows.forEach(r => {
+            const qty = parseInt(r.querySelector('.item-qty').value) || 0;
+            const price = parseFloat(r.querySelector('.item-price').value) || 0;
+            const line = qty * price;
+            r.querySelector('.item-line-total').textContent = "₹" + line.toFixed(2);
+            total += line;
+        });
+        invTotalEl.textContent = "₹" + total.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    addRowBtn.onclick = addRow;
+    addRow(); // Add initial row
+
+    form.onsubmit = function (e) {
+        const rows = itemsBody.querySelectorAll('tr');
+        const items = [];
+        rows.forEach(r => {
+            const prodId = r.querySelector('.item-prod').value;
+            const qty = parseInt(r.querySelector('.item-qty').value) || 0;
+            const price = parseFloat(r.querySelector('.item-price').value) || 0;
+            if (prodId && qty > 0) {
+                items.push({ product_id: parseInt(prodId), quantity: qty, purchase_price: price });
+            }
+        });
+
+        if (!items.length) {
+            alert("Please add at least one product with quantity.");
+            e.preventDefault();
+            return;
+        }
+        itemsJsonInput.value = JSON.stringify(items);
+    };
+});
+</script>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Shop Wi-Fi Phone Access - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on" style="max-width:620px; margin:20px auto;">
+  <h2>Connect Staff Phones via Shop Wi-Fi</h2>
+  <div class="hint">Use your smartphone or tablet as an untethered wireless barcode scanner or cashier terminal over the local Wi-Fi router. No internet required!</div>
+
+  <div style="background:var(--accent); color:var(--on); border:2px solid #C99A4B; border-radius:4px; padding:24px; text-align:center; margin:20px 0;">
+    <div style="font-size:14px; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px; color:#EFE7D6;">Open on Phones Connected to Shop Wi-Fi:</div>
+    <div class="num" style="font-size:32px; font-weight:900; letter-spacing:0.02em; word-break:break-all;">
+      http://{{ local_ip }}:8000
+    </div>
+    <div class="sub" style="color:#C99A4B; margin-top:8px;">Open Google Chrome on Android or Safari on iPhone and type this exact address.</div>
+  </div>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:18px; margin-bottom:18px; line-height:1.6; font-size:14px;">
+    <h3 style="color:var(--gold); font-size:16px; margin-bottom:8px;">Quick 3-Step Setup for Staff Phones:</h3>
+    <ol style="margin-left:20px;">
+      <li>Ensure the phone is connected to the <b>same Wi-Fi router</b> as this computer.</li>
+      <li>Open Chrome / Safari and type <code>http://{{ local_ip }}:8000</code>.</li>
+      <li><b>Install as App (PWA):</b> Tap the three dots (⋮) in Chrome and select <b>"Add to Home screen"</b> (or "Install app"). An app icon will appear on your phone home screen!</li>
+    </ol>
+  </div>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--gold); border-radius:4px; padding:18px; line-height:1.6; font-size:14px;">
+    <h3 style="color:var(--gold); font-size:16px; margin-bottom:8px;">Windows Firewall Notification</h3>
+    <p>When you start the application for the first time, Windows Defender Firewall may display a pop-up alert saying:</p>
+    <blockquote style="margin:8px 0; padding:8px 12px; background:var(--bg); border-left:3px solid var(--line); font-style:italic;">
+      "Windows Defender Firewall has blocked some features of this app"
+    </blockquote>
+    <p><b>What to click:</b></p>
+    <ul style="margin-left:20px; margin-top:6px;">
+      <li>Check the box for <b>"Private networks, such as my home or work network"</b>.</li>
+      <li>Click the <b>"Allow access"</b> button.</li>
+    </ul>
+    <p class="sub" style="margin-top:8px;">This allows other devices on the shop's local Wi-Fi to reach the register while keeping out unauthorized public connections.</p>
+  </div>
+</div>
+{% endblock %}

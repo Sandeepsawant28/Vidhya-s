@@ -1,0 +1,602 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Billing Register - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<section class="view on" id="v-bill">
+  <h2>New bill</h2>
+  <div style="position:relative;">
+    <input class="search" id="q" placeholder="Scan a barcode or type a brand" autocomplete="off" autofocus>
+    <div id="search-dropdown" class="sheet" style="position:absolute; top:100%; left:0; right:0; transform:none; display:none; max-height:260px; z-index:60; border:1px solid var(--line); border-top:2px solid var(--gold); padding:8px 12px; background:var(--surface);"></div>
+  </div>
+  <div class="hint" id="hint">Press Enter after a scan. Unknown codes can be added on the spot.</div>
+  
+  <!-- Quick Pick & Search Results -->
+  <div id="list">
+    {% for p in quick_picks %}
+      <button class="row" style="--i:{{ forloop.counter0 }}" data-id="{{ p.id }}" data-barcode="{{ p.barcode|default:'' }}" data-mrp="{{ p.mrp }}" data-stock="{{ p.calculated_stock }}" data-name="{{ p.brand }} {{ p.name }}" data-size="{{ p.size_ml }}">
+        <span class="name">
+          <b>{{ p.brand }} {{ p.name }}</b>
+          <small>{{ p.size_ml }} ml · {{ p.calculated_stock }} in stock {% if p.calculated_stock <= p.reorder_level %}<span class="tag">Low stock</span>{% endif %}</small>
+        </span>
+        <span class="num">₹{{ p.mrp|floatformat:2 }}</span>
+      </button>
+    {% empty %}
+      <div class="empty">No quick-pick items configured. Scan a barcode above to add bottles.</div>
+    {% endfor %}
+  </div>
+
+  <h2>Current bill</h2>
+  <div id="cart">
+    <div class="empty">Nothing added yet. Scan a bottle to begin.</div>
+  </div>
+
+  <div class="disc">
+    <span>Discount (₹)</span>
+    <input id="disc" type="number" inputmode="numeric" min="0" value="0">
+  </div>
+
+  <!-- Credit Customer Selection -->
+  <div id="customer-wrapper" style="display:none; margin:10px 0;">
+    <label class="form-label">Select Credit Customer</label>
+    <select id="customer-select" class="form-select" style="margin-top:2px;">
+      <option value="">-- Choose Customer for Ledger --</option>
+      {% for c in customers %}
+        <option value="{{ c.id }}">{{ c.name }} ({{ c.phone }}) · Bal: ₹{{ c.current_balance }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- Segmented Payment Mode Controls -->
+  <div class="seg" id="seg">
+    <i></i>
+    <button class="on" data-mode="CASH">Cash</button>
+    <button data-mode="UPI">UPI</button>
+    <button data-mode="CARD">Card</button>
+    <button data-mode="CREDIT">Credit</button>
+    <button data-mode="SPLIT">Split</button>
+  </div>
+
+  <div class="total">
+    <span class="sub">Total payable</span>
+    <span class="num" id="total">₹0</span>
+  </div>
+
+  <button class="primary" id="save">Save bill and update stock</button>
+</section>
+
+<!-- Unknown Barcode Quick-Add Modal -->
+<div class="modal-overlay" id="unknown-modal">
+  <div class="modal-card">
+    <h3>Unknown Barcode Scanned</h3>
+    <div class="sub" style="margin-bottom:14px;">Define this product and link the barcode immediately:</div>
+    <form id="quick-add-form">
+      <div>
+        <label class="form-label">Scanned Barcode</label>
+        <input type="text" id="quick-barcode" name="barcode" class="form-input" readonly>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label class="form-label">Brand</label>
+          <input type="text" id="quick-brand" name="brand" class="form-input" placeholder="e.g. Royal Stag" required>
+        </div>
+        <div>
+          <label class="form-label">Product Name</label>
+          <input type="text" id="quick-name" name="name" class="form-input" placeholder="e.g. Classic Deluxe" required>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label class="form-label">Category</label>
+          <select id="quick-category" name="category" class="form-select">
+            <option value="Whisky">Whisky</option>
+            <option value="Rum">Rum</option>
+            <option value="Vodka">Vodka</option>
+            <option value="Beer">Beer</option>
+            <option value="Wine">Wine</option>
+            <option value="Gin">Gin</option>
+            <option value="Brandy">Brandy</option>
+            <option value="Country Liquor">Country Liquor</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Volume (ml)</label>
+          <input type="number" id="quick-size" name="size_ml" class="form-input" value="750" required>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label class="form-label">MRP (₹)</label>
+          <input type="number" step="0.01" id="quick-mrp" name="mrp" class="form-input" placeholder="0.00" required>
+        </div>
+        <div>
+          <label class="form-label">Opening Stock</label>
+          <input type="number" id="quick-opening-stock" name="opening_stock" class="form-input" value="12" required>
+        </div>
+      </div>
+      <input type="hidden" name="purchase_price" value="0.00">
+      <div style="display:flex; gap:10px; margin-top:14px;">
+        <button type="submit" class="primary" style="flex:1;">Save & Add to Bill</button>
+        <button type="button" class="theme-btn" id="modal-cancel-btn" style="padding:12px;">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Split Payment Modal -->
+<div class="modal-overlay" id="split-modal">
+  <div class="modal-card">
+    <h3>Split Payment Breakdown</h3>
+    <div class="sub" style="margin-bottom:12px;">Enter the exact amount paid across multiple payment modes:</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+      <div>
+        <label class="form-label">Cash Amount (₹)</label>
+        <input type="number" step="0.01" id="split-cash" class="form-input" value="0.00">
+      </div>
+      <div>
+        <label class="form-label">UPI Amount (₹)</label>
+        <input type="number" step="0.01" id="split-upi" class="form-input" value="0.00">
+      </div>
+      <div>
+        <label class="form-label">Card Amount (₹)</label>
+        <input type="number" step="0.01" id="split-card" class="form-input" value="0.00">
+      </div>
+      <div>
+        <label class="form-label">Credit Amount (₹)</label>
+        <input type="number" step="0.01" id="split-credit" class="form-input" value="0.00">
+      </div>
+    </div>
+    <div id="split-check" style="font-weight:600; font-size:13px; margin:8px 0;"></div>
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button type="button" class="primary" id="split-confirm-btn" style="flex:1;">Confirm Split</button>
+      <button type="button" class="theme-btn" id="split-cancel-btn" style="padding:12px;">Cancel</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Billing Engine connecting Vidya's Liquor Loft UI to Django Backend
+document.addEventListener('DOMContentLoaded', function () {
+    let cart = {}; // { id: { id, name, size_ml, mrp, qty, stock } }
+    let payMode = "CASH";
+    let lastAdded = 0;
+    let splitData = { cash: 0, upi: 0, card: 0, credit: 0 };
+
+    const q = document.getElementById('q');
+    const hint = document.getElementById('hint');
+    const listEl = document.getElementById('list');
+    const cartEl = document.getElementById('cart');
+    const discInput = document.getElementById('disc');
+    const totalEl = document.getElementById('total');
+    const seg = document.getElementById('seg');
+    const saveBtn = document.getElementById('save');
+    const sheet = document.getElementById('sheet');
+    const custWrapper = document.getElementById('customer-wrapper');
+    const custSelect = document.getElementById('customer-select');
+
+    // Unknown Barcode modal elements
+    const unknownModal = document.getElementById('unknown-modal');
+    const quickBarcode = document.getElementById('quick-barcode');
+    const quickAddForm = document.getElementById('quick-add-form');
+    const modalCancelBtn = document.getElementById('modal-cancel-btn');
+
+    // Split modal elements
+    const splitModal = document.getElementById('split-modal');
+    const splitCash = document.getElementById('split-cash');
+    const splitUpi = document.getElementById('split-upi');
+    const splitCard = document.getElementById('split-card');
+    const splitCredit = document.getElementById('split-credit');
+    const splitCheck = document.getElementById('split-check');
+    const splitConfirm = document.getElementById('split-confirm-btn');
+    const splitCancel = document.getElementById('split-cancel-btn');
+
+    // Helper: Number formatting
+    const fmt = n => "₹" + Math.round(n).toLocaleString("en-IN");
+
+    // Animated counter on total
+    function count(el, to) {
+        const from = parseFloat(el.dataset.v || 0);
+        el.dataset.v = to;
+        const t0 = performance.now();
+        (function f(t) {
+            const k = Math.min(1, (t - t0) / 450);
+            const ease = 1 - Math.pow(1 - k, 3);
+            el.textContent = fmt(from + (to - from) * ease);
+            if (k < 1) requestAnimationFrame(f);
+        })(t0);
+    }
+
+    // Always focus the search input for barcode scanner
+    function focusSearch() {
+        if (!unknownModal.classList.contains('open') && !splitModal.classList.contains('open') && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT') {
+            q.focus();
+        }
+    }
+    focusSearch();
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.modal-card') && !e.target.closest('input') && !e.target.closest('select')) {
+            focusSearch();
+        }
+    });
+
+    // Add product to cart
+    function addToCart(p) {
+        const currentQty = cart[p.id] ? cart[p.id].qty : 0;
+        const newQty = currentQty + 1;
+        if (p.stock !== undefined && newQty > p.stock) {
+            window.toast("Warning: Low/0 stock left for " + p.name);
+        }
+        cart[p.id] = {
+            id: p.id,
+            name: p.name,
+            size_ml: p.size_ml,
+            mrp: parseFloat(p.mrp),
+            qty: newQty,
+            stock: p.stock !== undefined ? p.stock : 999
+        };
+        lastAdded = p.id;
+        drawCart();
+    }
+
+    // Draw Cart Items
+    function drawCart() {
+        const ids = Object.keys(cart);
+        if (!ids.length) {
+            cartEl.innerHTML = `<div class="empty">Nothing added yet. Scan a bottle to begin.</div>`;
+            count(totalEl, 0);
+            return;
+        }
+
+        cartEl.innerHTML = ids.map(id => {
+            const item = cart[id];
+            const isLow = item.stock < item.qty;
+            return `
+                <div class="cartrow ${id == lastAdded ? "enter" : ""}">
+                    <span class="name">
+                        <b>${item.name}</b>
+                        <small class="sub">${item.size_ml} ml · ${fmt(item.mrp)} each ${isLow ? '<span class="tag">0/Low Stock</span>' : ''}</small>
+                    </span>
+                    <div class="qty">
+                        <button data-d="-1" data-id="${id}" aria-label="Less">−</button>
+                        <span class="num">${item.qty}</span>
+                        <button data-d="1" data-id="${id}" aria-label="More">+</button>
+                    </div>
+                    <span class="num" style="min-width:70px; text-align:right">${fmt(item.mrp * item.qty)}</span>
+                </div>
+            `;
+        }).join("");
+        lastAdded = 0;
+        calcSum();
+    }
+
+    // Calculate Grand Total
+    function calcSum() {
+        let s = 0;
+        for (const id in cart) {
+            s += cart[id].mrp * cart[id].qty;
+        }
+        const d = Math.min(Math.max(parseFloat(discInput.value) || 0, 0), s);
+        const grand = Math.max(0, s - d);
+        count(totalEl, grand);
+        return grand;
+    }
+    discInput.oninput = calcSum;
+
+    // Cart +/- qty buttons
+    cartEl.onclick = e => {
+        const btn = e.target.closest("[data-d]");
+        if (!btn) return;
+        const id = btn.dataset.id;
+        const d = parseInt(btn.dataset.d);
+        if (d > 0) {
+            addToCart(cart[id]);
+        } else {
+            cart[id].qty--;
+            if (cart[id].qty <= 0) delete cart[id];
+            drawCart();
+        }
+    };
+
+    // Quick pick item clicks
+    listEl.onclick = e => {
+        const btn = e.target.closest(".row");
+        if (btn) {
+            btn.classList.remove("bump");
+            void btn.offsetWidth;
+            btn.classList.add("bump");
+            addToCart({
+                id: parseInt(btn.dataset.id),
+                name: btn.dataset.name,
+                size_ml: btn.dataset.size,
+                mrp: parseFloat(btn.dataset.mrp),
+                stock: parseInt(btn.dataset.stock || 0)
+            });
+        }
+    };
+
+    // Live instant search as user types or scans
+    q.oninput = () => {
+        const v = q.value.trim().toLowerCase();
+        const rows = listEl.querySelectorAll('.row');
+        let matchCount = 0;
+        rows.forEach(r => {
+            const name = (r.dataset.name || '').toLowerCase();
+            const bc = (r.dataset.barcode || '').toLowerCase();
+            if (!v || name.includes(v) || bc.includes(v)) {
+                r.style.display = '';
+                matchCount++;
+            } else {
+                r.style.display = 'none';
+            }
+        });
+        if (v.length >= 2) {
+            hint.textContent = `Filtering "${v}"... Press Enter to scan or select below.`;
+        } else {
+            hint.textContent = "Press Enter after a scan. Unknown codes can be added on the spot.";
+        }
+    };
+
+    // Search bar input & enter key (barcode scanner support)
+    q.onkeydown = e => {
+        if (e.key !== "Enter") return;
+        const v = q.value.trim();
+        if (!v) return;
+
+        fetch(`/billing/api/search/?term=${encodeURIComponent(v)}`)
+            .then(res => res.json())
+            .then(data => {
+                const results = data.results || [];
+                if (results.length === 1 || (results.length > 0 && results[0].is_exact)) {
+                    addToCart({
+                        id: results[0].id,
+                        name: results[0].brand + " " + results[0].name,
+                        size_ml: results[0].size_ml,
+                        mrp: results[0].mrp,
+                        stock: results[0].stock
+                    });
+                    q.value = "";
+                    hint.textContent = "Added " + results[0].brand + " " + results[0].name;
+                } else if (results.length > 1) {
+                    hint.textContent = `Found ${results.length} matches. Click below to add.`;
+                    renderSearchResults(results);
+                } else {
+                    // Unknown Barcode modal
+                    hint.textContent = "Unknown barcode " + v + ". Enter brand, size and MRP to add it.";
+                    openUnknownModal(v);
+                }
+            })
+            .catch(err => console.error("Search error:", err));
+        e.target.select();
+    };
+
+    function renderSearchResults(items) {
+        listEl.innerHTML = items.map((p, i) => `
+            <button class="row" style="--i:${i}" data-id="${p.id}" data-name="${p.brand} ${p.name}" data-size="${p.size_ml}" data-mrp="${p.mrp}" data-stock="${p.stock}">
+                <span class="name"><b>${p.brand} ${p.name}</b><small>${p.size_ml} ml · ${p.stock} in stock</small></span>
+                <span class="num">${fmt(p.mrp)}</span>
+            </button>
+        `).join("");
+    }
+
+    // Payment Mode Segmented Control
+    seg.onclick = e => {
+        const btn = e.target.closest("button");
+        if (!btn) return;
+        const buttons = [...seg.querySelectorAll("button")];
+        buttons.forEach(b => b.classList.toggle("on", b === btn));
+        payMode = btn.dataset.mode;
+        const idx = buttons.indexOf(btn);
+        seg.querySelector("i").style.transform = `translateX(${idx * 100}%)`;
+
+        if (payMode === "CREDIT") {
+            custWrapper.style.display = "block";
+        } else if (payMode === "SPLIT") {
+            custWrapper.style.display = "block";
+            openSplitModal();
+        } else {
+            custWrapper.style.display = "none";
+        }
+    };
+
+    // Unknown Barcode Modal Handlers
+    function openUnknownModal(barcode) {
+        quickBarcode.value = barcode;
+        unknownModal.classList.add('open');
+        document.getElementById('quick-brand').focus();
+    }
+    modalCancelBtn.onclick = () => {
+        unknownModal.classList.remove('open');
+        focusSearch();
+    };
+    quickAddForm.onsubmit = function (e) {
+        e.preventDefault();
+        const formData = new FormData(quickAddForm);
+        fetch('/billing/api/quick-add/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': getCookie('csrftoken') }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                unknownModal.classList.remove('open');
+                quickAddForm.reset();
+                addToCart({
+                    id: data.product.id,
+                    name: data.product.brand + " " + data.product.name,
+                    size_ml: data.product.size_ml,
+                    mrp: data.product.mrp,
+                    stock: data.product.stock
+                });
+                q.value = "";
+                window.toast("New product added and linked to barcode!");
+                focusSearch();
+            } else {
+                alert(data.error || "Failed to add product.");
+            }
+        });
+    };
+
+    // Split Payment Modal Handlers
+    function openSplitModal() {
+        const grand = calcSum();
+        splitCash.value = grand.toFixed(2);
+        splitUpi.value = "0.00";
+        splitCard.value = "0.00";
+        splitCredit.value = "0.00";
+        checkSplitSum();
+        splitModal.classList.add('open');
+    }
+    function checkSplitSum() {
+        const grand = calcSum();
+        const c = parseFloat(splitCash.value) || 0;
+        const u = parseFloat(splitUpi.value) || 0;
+        const cd = parseFloat(splitCard.value) || 0;
+        const cr = parseFloat(splitCredit.value) || 0;
+        const sum = c + u + cd + cr;
+        splitData = { cash: c, upi: u, card: cd, credit: cr };
+        const diff = grand - sum;
+        if (Math.abs(diff) < 0.01) {
+            splitCheck.textContent = `Split matches Grand Total (${fmt(sum)})`;
+            splitCheck.style.color = "var(--success)";
+            splitConfirm.disabled = false;
+        } else {
+            splitCheck.textContent = `Difference: ₹${diff.toFixed(2)} (Split: ₹${sum.toFixed(2)} vs Total: ₹${grand.toFixed(2)})`;
+            splitCheck.style.color = "var(--warn)";
+            splitConfirm.disabled = true;
+        }
+    }
+    [splitCash, splitUpi, splitCard, splitCredit].forEach(inp => inp.oninput = checkSplitSum);
+    splitConfirm.onclick = () => {
+        splitModal.classList.remove('open');
+        focusSearch();
+    };
+    splitCancel.onclick = () => {
+        splitModal.classList.remove('open');
+        seg.querySelectorAll("button").forEach((b, i) => {
+            b.classList.toggle("on", i === 0);
+        });
+        payMode = "CASH";
+        seg.querySelector("i").style.transform = `translateX(0%)`;
+        custWrapper.style.display = "none";
+        focusSearch();
+    };
+
+    // Save Bill and Checkout (Transaction Atomic)
+    saveBtn.onclick = () => {
+        if (!Object.keys(cart).length) {
+            window.toast("Add at least one item first");
+            return;
+        }
+
+        const grand = calcSum();
+        const custId = custSelect.value || null;
+
+        if (payMode === "CREDIT" && !custId) {
+            window.toast("Please select a Credit customer first");
+            custSelect.focus();
+            return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = "Processing...";
+
+        const payload = {
+            items: Object.values(cart).map(i => ({
+                product_id: i.id,
+                quantity: i.qty,
+                unit_price: i.mrp,
+                discount: 0
+            })),
+            payment_mode: payMode,
+            discount_amount: parseFloat(discInput.value) || 0,
+            customer_id: custId,
+            cash_paid: payMode === 'SPLIT' ? splitData.cash : 0,
+            upi_paid: payMode === 'SPLIT' ? splitData.upi : 0,
+            card_paid: payMode === 'SPLIT' ? splitData.card : 0,
+            credit_paid: payMode === 'SPLIT' ? splitData.credit : 0,
+        };
+
+        fetch('/billing/api/process-bill/', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Save bill and update stock";
+
+            if (data.success) {
+                // Show bottom sheet receipt preview
+                let rows = "";
+                for (const id in cart) {
+                    const item = cart[id];
+                    rows += `<div class="line"><div class="top"><span>${item.name} (${item.size_ml}ml) × ${item.qty}</span><span class="num">${fmt(item.mrp * item.qty)}</span></div></div>`;
+                }
+
+                sheet.innerHTML = `
+                    <div style="text-align:center">
+                        <h2 style="margin:0">{{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}</h2>
+                        <div class="sub">{{ shop_settings.address|default:"Fatorda, Goa" }} · {{ shop_settings.phone|default:"7666208703" }}</div>
+                    </div>
+                    <h2>Bill #${data.bill_number} saved</h2>
+                    ${rows}
+                    <div class="total">
+                        <span class="sub">Paid by ${payMode}</span>
+                        <span class="num">${fmt(grand)}</span>
+                    </div>
+                    <div style="display:flex; gap:10px; margin-top:14px;">
+                        <button class="primary" id="print-slip-btn" style="flex:1;">Print 80mm Receipt</button>
+                        <button class="theme-btn" id="done-btn" style="padding:14px;">Next Bill</button>
+                    </div>
+                `;
+                sheet.classList.add("on");
+
+                // Reset cart for next customer
+                cart = {};
+                discInput.value = "0";
+                drawCart();
+
+                document.getElementById('print-slip-btn').onclick = () => {
+                    window.open(data.receipt_url, '_blank', 'width=380,height=620');
+                };
+                document.getElementById('done-btn').onclick = () => {
+                    sheet.classList.remove("on");
+                    focusSearch();
+                };
+            } else {
+                alert("Sale Error: " + data.error);
+            }
+        })
+        .catch(err => {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Save bill and update stock";
+            alert("Error processing transaction. Check connection.");
+        });
+    };
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock %}

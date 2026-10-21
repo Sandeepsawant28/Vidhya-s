@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block title %}Backup & Restore - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+    <h2>Database Backup & Restore</h2>
+    <div style="display:flex; gap:8px;">
+      <a href="{% url 'shop_settings' %}" class="theme-btn" style="text-decoration:none; padding:8px 12px; font-size:13px;">Shop Settings</a>
+      <a href="{% url 'audit_log' %}" class="theme-btn" style="text-decoration:none; padding:8px 12px; font-size:13px;">Audit Log</a>
+    </div>
+  </div>
+  <div class="hint">Live online backup uses SQLite's official Backup API to avoid lockups or corruption. Stored in <code>{{ data_dir }}\backups\</code>.</div>
+
+  <!-- Action 1: Backup Now -->
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:18px; margin:16px 0;">
+    <h3 style="font-size:16px; margin-bottom:6px; color:var(--gold);">1. Create Backup Immediately</h3>
+    <p class="sub" style="margin-bottom:14px;">Generates a snapshot dated file. If a secondary USB path is set in Settings, copies there as well. Backups older than 30 days are automatically deleted.</p>
+    <form method="post">
+      {% csrf_token %}
+      <input type="hidden" name="action_backup" value="1">
+      <button type="submit" class="primary" style="max-width:240px;">⚡ Backup Now</button>
+    </form>
+  </div>
+
+  <!-- Action 2: Restore from Backup -->
+  <div style="background:var(--surface); border:1px solid var(--line); border-left:4px solid var(--warn); border-radius:4px; padding:18px; margin-bottom:20px;">
+    <h3 style="font-size:16px; margin-bottom:6px; color:var(--warn);">2. Restore from Backup (.db)</h3>
+    <p class="sub" style="margin-bottom:14px;">Select a previously saved <code>shop_YYYY-MM-DD.db</code> file to restore. The system automatically creates a safety snapshot before applying the restore.</p>
+    <form method="post" enctype="multipart/form-data" onsubmit="return confirm('Are you sure you want to restore? Current data will be replaced by the selected backup!');">
+      {% csrf_token %}
+      <input type="hidden" name="action_restore" value="1">
+      <input type="file" name="backup_file" accept=".db" class="form-input" style="max-width:320px;" required>
+      <button type="submit" class="theme-btn" style="background:#7f1d1d; color:#fecaca; border-color:#dc2626; padding:12px 20px; font-weight:700;">Restore from Backup</button>
+    </form>
+  </div>
+
+  <!-- List of Available Backups -->
+  <h2>Existing Local Backups</h2>
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; overflow:hidden;">
+    {% for b in existing_backups %}
+      <div class="line" style="padding:10px 14px;">
+        <div class="top">
+          <div>
+            <b>{{ b.filename }}</b>
+            <br><small class="sub">Created: {{ b.created_at|date:"d M Y, H:i:s" }} · Size: {{ b.size_kb }} KB</small>
+          </div>
+          <span class="tag tag-success">Active Snapshot</span>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty">No backup files found in backup directory yet. Click 'Backup Now' above.</div>
+    {% endfor %}
+  </div>
+
+  <!-- Windows Task Scheduler Step-by-Step Instructions -->
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:18px; margin-top:24px; font-size:13px; line-height:1.6;">
+    <h3 style="color:var(--gold); font-size:16px; margin-bottom:8px;">How to Schedule Nightly Automated Backups in Windows Task Scheduler</h3>
+    <ol style="margin-left:18px;">
+      <li>Press <kbd>Win + R</kbd>, type <code>taskschd.msc</code>, and hit <b>Enter</b> to open <b>Windows Task Scheduler</b>.</li>
+      <li>In the right panel, click <b>Create Basic Task...</b></li>
+      <li>Name it: <code>Liquor Shop Nightly Backup</code> and click <b>Next</b>.</li>
+      <li>Trigger: Select <b>Daily</b>, click <b>Next</b>, and set the time to <code>11:45 PM</code> (after shop closing).</li>
+      <li>Action: Select <b>Start a program</b>, click <b>Next</b>.</li>
+      <li>Program/script: Click <b>Browse</b> and select <code>backup.bat</code> located in your install folder (e.g. <code>C:\Program Files\LiquorShop\backup.bat</code>).</li>
+      <li>Click <b>Next</b> and then <b>Finish</b>.</li>
+    </ol>
+    <p class="sub" style="margin-top:8px;">Every night at 11:45 PM, Windows will run this script automatically without opening any interfering windows.</p>
+  </div>
+</div>
+{% endblock %}

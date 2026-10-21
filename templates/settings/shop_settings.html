@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Shop Settings - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on" style="max-width:560px; margin:20px auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h2>Store Profile & Settings</h2>
+    <div style="display:flex; gap:8px;">
+      <a href="{% url 'backup_management' %}" class="theme-btn" style="text-decoration:none; padding:8px 12px; font-size:13px; color:var(--gold);">Backups</a>
+      <a href="{% url 'audit_log' %}" class="theme-btn" style="text-decoration:none; padding:8px 12px; font-size:13px;">Audit Log</a>
+    </div>
+  </div>
+  <div class="hint">Information printed on thermal receipts and system configuration.</div>
+
+  <form method="post" style="background:var(--surface); padding:20px; border:1px solid var(--line); border-radius:4px; margin-top:14px;">
+    {% csrf_token %}
+
+    <div style="margin-bottom:12px;">
+      <label class="form-label">Shop / Trade Name</label>
+      {{ form.shop_name }}
+      {{ form.shop_name.errors }}
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label class="form-label">Address</label>
+      {{ form.address }}
+      {{ form.address.errors }}
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+      <div>
+        <label class="form-label">Phone Number</label>
+        {{ form.phone }}
+        {{ form.phone.errors }}
+      </div>
+      <div>
+        <label class="form-label">State Excise Licence No.</label>
+        {{ form.licence_number }}
+        {{ form.licence_number.errors }}
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label class="form-label">GSTIN (Optional)</label>
+      {{ form.gst_number }}
+      {{ form.gst_number.errors }}
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label class="form-label">Secondary Backup Folder (USB Drive or External Drive)</label>
+      {{ form.secondary_backup_path }}
+      {{ form.secondary_backup_path.errors }}
+      <small class="sub" style="display:block; margin-top:-8px; margin-bottom:10px;">Optional path (e.g. <code>E:\LiquorBackups</code>). Nightly backups will copy here automatically.</small>
+    </div>
+
+    <div style="margin-bottom:18px;">
+      <label class="form-label">Receipt Footer Note (Printed on 80mm Slips)</label>
+      {{ form.receipt_footer }}
+      {{ form.receipt_footer.errors }}
+    </div>
+
+    <button type="submit" class="primary">Save Store Settings</button>
+  </form>
+</div>
+{% endblock %}

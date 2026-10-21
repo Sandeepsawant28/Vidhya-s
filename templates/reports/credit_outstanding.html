@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Credit Outstanding Report - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+    <h2>Credit Outstanding Report</h2>
+    <a href="?export=excel" class="theme-btn" style="text-decoration:none; padding:8px 12px; font-size:13px;">Download Excel</a>
+  </div>
+  <div class="hint">Full list of all credit customers with unpaid ledger balances.</div>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-top:14px;">
+    {% for c in customers %}
+      <div class="line" style="padding:12px 14px;">
+        <div class="top">
+          <div>
+            <b>{{ c.name }}</b> <small class="sub">({{ c.phone }})</small>
+            {% if c.address %}<br><small class="sub">{{ c.address }}</small>{% endif %}
+            <br><small class="sub">Credit Limit Allowed: ₹{{ c.credit_limit|floatformat:2 }}</small>
+          </div>
+          <div style="text-align:right;">
+            <div class="num" style="font-size:20px; font-weight:700; color:var(--warn);">₹{{ c.current_balance|floatformat:2 }}</div>
+            <a href="{% url 'customer_ledger' c.id %}" class="theme-btn" style="text-decoration:none; font-size:11px; padding:3px 8px; margin-top:4px; display:inline-block;">View Ledger</a>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty">Zero outstanding credit! All customer balances are fully cleared.</div>
+    {% endfor %}
+  </div>
+
+  <div class="total" style="margin-top:16px;">
+    <span class="sub">Total Store Credit Outstanding</span>
+    <span class="num">₹{{ total_balance|floatformat:2 }}</span>
+  </div>
+</div>
+{% endblock %}

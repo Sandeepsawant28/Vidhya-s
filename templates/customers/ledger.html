@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+
+{% block title %}Ledger - {{ customer.name }}{% endblock %}
+
+{% block content %}
+<div class="view on">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h2>Customer Ledger: {{ customer.name }}</h2>
+    <div style="display:flex; gap:8px;">
+      <a href="{% url 'credit_payment_create' %}?customer={{ customer.id }}" class="primary" style="padding:8px 12px; font-size:13px; text-decoration:none;">Record Payment</a>
+      <a href="{% url 'customer_list' %}" class="theme-btn" style="padding:8px 12px; font-size:13px; text-decoration:none;">Back to List</a>
+    </div>
+  </div>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:16px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <div><b>Phone:</b> {{ customer.phone }}</div>
+      {% if customer.address %}<div><b>Address:</b> {{ customer.address }}</div>{% endif %}
+      <div><b>Credit Limit:</b> ₹{{ customer.credit_limit|floatformat:2 }}</div>
+    </div>
+    <div style="text-align:right;">
+      <div class="sub">Current Balance Due</div>
+      <div class="num" style="font-size:26px; font-weight:700; color:{% if customer.current_balance > 0 %}var(--warn){% else %}var(--success){% endif %};">
+        ₹{{ customer.current_balance|floatformat:2 }}
+      </div>
+    </div>
+  </div>
+
+  <h2>Payments Received</h2>
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-bottom:20px;">
+    {% for pay in payments %}
+      <div class="line" style="padding:10px 14px;">
+        <div class="top">
+          <div>
+            <b>₹{{ pay.amount|floatformat:2 }}</b> via {{ pay.get_payment_mode_display }}
+            <br><small class="sub">{{ pay.date|date:"d M Y" }} · Received by {{ pay.received_by.username }}{% if pay.reference_note %} · Ref: {{ pay.reference_note }}{% endif %}</small>
+          </div>
+          <span class="tag tag-success">Paid</span>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty">No payments recorded yet.</div>
+    {% endfor %}
+  </div>
+
+  <h2>Credit Purchases (Bills)</h2>
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; overflow:hidden;">
+    {% for b in bills %}
+      <div class="line" style="padding:10px 14px;">
+        <div class="top">
+          <div>
+            <b>Bill #{{ b.bill_number }}</b>
+            <br><small class="sub">{{ b.created_at|date:"d M Y H:i" }} · Total: ₹{{ b.total_amount|floatformat:2 }} · Credit: ₹{{ b.credit_paid|floatformat:2 }}</small>
+          </div>
+          <a href="{% url 'receipt' b.id %}" target="_blank" class="theme-btn" style="text-decoration:none; font-size:11px; padding:4px 8px;">View Receipt</a>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty">No credit bills recorded for this customer.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

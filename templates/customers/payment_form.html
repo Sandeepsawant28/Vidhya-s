@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Credit Payment - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on" style="max-width:500px; margin:20px auto;">
+  <h2>Record Customer Payment</h2>
+  <div class="hint">Record cash or UPI payment received towards a customer's credit balance.</div>
+
+  <form method="post" style="background:var(--surface); padding:20px; border:1px solid var(--line); border-radius:4px; margin-top:14px;">
+    {% csrf_token %}
+
+    <div style="margin-bottom:12px;">
+      <label class="form-label">Customer</label>
+      {{ form.customer }}
+      {{ form.customer.errors }}
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+      <div>
+        <label class="form-label">Amount Paid (₹)</label>
+        {{ form.amount }}
+        {{ form.amount.errors }}
+      </div>
+      <div>
+        <label class="form-label">Payment Mode</label>
+        {{ form.payment_mode }}
+        {{ form.payment_mode.errors }}
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label class="form-label">Payment Date</label>
+      {{ form.date }}
+      {{ form.date.errors }}
+    </div>
+
+    <div style="margin-bottom:18px;">
+      <label class="form-label">Reference Note / UPI Txn ID</label>
+      {{ form.reference_note }}
+      {{ form.reference_note.errors }}
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <button type="submit" class="primary" style="flex:1;">Record Payment & Update Balance</button>
+      <a href="{% url 'customer_list' %}" class="theme-btn" style="padding:14px; text-decoration:none;">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Past Bills - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h2>Sales Bills History</h2>
+    <a href="{% url 'pos' %}" class="primary" style="padding:8px 14px; text-decoration:none; font-size:14px;">+ New Bill</a>
+  </div>
+
+  <form method="get" style="display:flex; gap:8px; margin-bottom:16px;">
+    <input type="text" name="q" value="{{ query }}" class="search" placeholder="Search bill no or customer phone..." style="flex:1; padding:10px;">
+    <input type="date" name="date" value="{{ date_filter }}" class="form-input" style="width:170px; margin:0;">
+    <button type="submit" class="theme-btn" style="padding:10px 16px;">Filter</button>
+  </form>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; overflow:hidden;">
+    {% for b in bills %}
+      <div class="line" style="padding:12px 14px;">
+        <div class="top">
+          <div>
+            <b>{{ b.bill_number }}</b>
+            {% if b.status == 'CANCELLED' %}
+              <span class="tag" style="background:#7f1d1d; color:#fecaca;">Cancelled</span>
+            {% else %}
+              <span class="tag tag-success">Completed</span>
+            {% endif %}
+            <br>
+            <small class="sub">{{ b.created_at|date:"d M Y, H:i" }} · Cashier: {{ b.created_by.username }} · Paid via {{ b.get_payment_mode_display }}</small>
+            {% if b.customer %}<br><small class="sub">Customer: {{ b.customer.name }} ({{ b.customer.phone }})</small>{% endif %}
+            {% if b.cancellation_reason %}<br><small style="color:var(--warn);">Reason: {{ b.cancellation_reason }} (by {{ b.cancelled_by.username }})</small>{% endif %}
+          </div>
+          <div style="text-align:right;">
+            <div class="num" style="font-size:18px; font-weight:700;">₹{{ b.total_amount|floatformat:2 }}</div>
+            <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:6px;">
+              <a href="{% url 'receipt' b.id %}" target="_blank" class="theme-btn" style="text-decoration:none; font-size:11px; padding:3px 8px;">Slip</a>
+              {% if is_owner and b.status != 'CANCELLED' %}
+                <a href="{% url 'bill_cancel' b.id %}" class="theme-btn" style="text-decoration:none; font-size:11px; padding:3px 8px; color:var(--warn); border-color:var(--warn);">Cancel Bill</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty">No sales bills found matching your criteria.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{
+  "name": "Vidya’s Liquor Loft - Inventory & POS",
+  "short_name": "LiquorLoft",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0E0D0B",
+  "theme_color": "#C99A4B",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}

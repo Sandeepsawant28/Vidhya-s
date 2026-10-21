@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Credit Customer - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on" style="max-width:500px; margin:20px auto;">
+  <h2>Add Credit Customer</h2>
+  <div class="hint">Create an account for trusted regular customers who purchase on credit.</div>
+
+  <form method="post" style="background:var(--surface); padding:20px; border:1px solid var(--line); border-radius:4px; margin-top:14px;">
+    {% csrf_token %}
+
+    <div style="margin-bottom:12px;">
+      <label class="form-label">Customer Name</label>
+      {{ form.name }}
+      {{ form.name.errors }}
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label class="form-label">Mobile Number</label>
+      {{ form.phone }}
+      {{ form.phone.errors }}
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label class="form-label">Address / Landmark</label>
+      {{ form.address }}
+      {{ form.address.errors }}
+    </div>
+
+    <div style="margin-bottom:18px;">
+      <label class="form-label">Credit Limit (₹)</label>
+      {{ form.credit_limit }}
+      {{ form.credit_limit.errors }}
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <button type="submit" class="primary" style="flex:1;">Save Customer</button>
+      <a href="{% url 'customer_list' %}" class="theme-btn" style="padding:14px; text-decoration:none;">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

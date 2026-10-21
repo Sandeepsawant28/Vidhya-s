@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Low Stock Alert - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+    <h2>Reorder Soon (Low Stock Alerts)</h2>
+    <a href="?export=excel" class="theme-btn" style="text-decoration:none; padding:8px 12px; font-size:13px;">Download Excel</a>
+  </div>
+  <div class="hint">Liquor products currently at or below their minimum reorder thresholds. Order these from suppliers immediately.</div>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:10px 14px; margin-top:14px;">
+    {% for p in low_stock_items %}
+      <div class="line top" style="padding:12px 0;">
+        <div>
+          <b>{{ p.brand }} {{ p.name }} ({{ p.size_ml }}ml)</b>
+          <br><small class="sub">{{ p.category }} · Barcode: {{ p.barcode|default:"N/A" }} · Reorder Trigger: {{ p.reorder_level }} bottles</small>
+        </div>
+        <div style="text-align:right;">
+          <span class="tag" style="font-size:13px; font-weight:700;">{{ p.calculated_stock }} left</span>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty">Excellent! All products are currently stocked safely above their reorder thresholds.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Credit Customers - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h2>Credit Customers & Balances</h2>
+    <div style="display:flex; gap:8px;">
+      <a href="{% url 'customer_create' %}" class="primary" style="padding:8px 12px; font-size:13px; text-decoration:none;">+ Add Customer</a>
+      <a href="{% url 'credit_payment_create' %}" class="theme-btn" style="padding:8px 12px; font-size:13px; text-decoration:none;">Record Payment</a>
+    </div>
+  </div>
+
+  <form method="get" style="display:flex; gap:8px; margin-bottom:16px;">
+    <input type="text" name="q" value="{{ query }}" class="search" placeholder="Search customer by name or phone..." style="flex:1; padding:10px;">
+    <button type="submit" class="theme-btn" style="padding:10px 16px;">Search</button>
+  </form>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; overflow:hidden;">
+    {% for c in customers %}
+      <div class="line" style="padding:12px 14px;">
+        <div class="top">
+          <div>
+            <b>{{ c.name }}</b> <small class="sub">({{ c.phone }})</small>
+            {% if c.address %}<br><small class="sub">{{ c.address }}</small>{% endif %}
+            <br><small class="sub">Credit Limit: ₹{{ c.credit_limit|floatformat:2 }}</small>
+          </div>
+          <div style="text-align:right;">
+            <div class="num" style="font-size:20px; font-weight:700; color:{% if c.current_balance > 0 %}var(--warn){% else %}var(--success){% endif %};">
+              ₹{{ c.current_balance|floatformat:2 }}
+            </div>
+            <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:4px;">
+              <a href="{% url 'customer_ledger' c.id %}" class="theme-btn" style="text-decoration:none; font-size:11px; padding:3px 8px;">Ledger</a>
+              <a href="{% url 'credit_payment_create' %}?customer={{ c.id }}" class="theme-btn" style="text-decoration:none; font-size:11px; padding:3px 8px; color:var(--gold);">Pay</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty">No credit customers recorded yet.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

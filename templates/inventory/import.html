@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block title %}Import Products - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on" style="max-width:540px; margin:20px auto;">
+  <h2>Import Catalog from Excel / CSV</h2>
+  <div class="hint">Upload an Excel (.xlsx) or CSV file with your product list to bulk import or update prices and opening stock.</div>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:16px; margin:16px 0; font-size:13px; line-height:1.5;">
+    <b>Expected Excel Column Order:</b>
+    <ol style="margin-left:18px; margin-top:6px;">
+      <li><b>Brand</b> (e.g. Royal Challenge)</li>
+      <li><b>Name</b> (e.g. Classic Whisky)</li>
+      <li><b>Category</b> (Whisky, Rum, Vodka, Beer, Wine, Gin, Brandy, Country Liquor, Other)</li>
+      <li><b>Size ml</b> (e.g. 750, 375, 180, 650)</li>
+      <li><b>Barcode</b> (e.g. 890123400001)</li>
+      <li><b>MRP</b> (e.g. 850.00)</li>
+      <li><b>Purchase Price</b> (e.g. 680.00)</li>
+      <li><b>Reorder Level</b> (e.g. 10)</li>
+      <li><b>Opening Stock</b> (e.g. 24)</li>
+    </ol>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" style="background:var(--surface); padding:20px; border:1px solid var(--line); border-radius:4px;">
+    {% csrf_token %}
+    <label class="form-label">Select Excel (.xlsx) or CSV File</label>
+    {{ form.file }}
+    {{ form.file.errors }}
+
+    <div style="display:flex; gap:10px; margin-top:16px;">
+      <button type="submit" class="primary" style="flex:1;">Upload & Import</button>
+      <a href="{% url 'product_list' %}" class="theme-btn" style="padding:14px; text-decoration:none;">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

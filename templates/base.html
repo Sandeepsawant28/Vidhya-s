@@ -1,0 +1,92 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}{{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}</title>
+  
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#C99A4B">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <img src="{% static 'img/logo.jpg' %}" alt="Vidya’s Liquor Loft" class="logo" style="width:48px; height:48px; object-fit:cover; border-radius:4px; border:1px solid #C99A4B; flex:none;">
+      <div>
+        <h1>{{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}</h1>
+        <div class="sub">Premium spirits. Exceptional experiences.</div>
+      </div>
+    </div>
+    <div class="tools">
+      <button class="theme-btn" id="motion">Motion on</button>
+      <button class="theme-btn" id="theme">Dark</button>
+      {% if request.user.is_authenticated %}
+        <a href="{% url 'logout' %}" class="theme-btn" style="text-decoration:none; color:#ef4444;" title="Log out {{ request.user.username }}">Exit</a>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- Flash Messages -->
+  {% if messages %}
+    <div class="container" style="padding-bottom:0;">
+      {% for message in messages %}
+        <div class="line" style="background:var(--surface); border-left:4px solid var(--gold); padding:10px 14px; margin-bottom:10px; border-radius:3px;">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <!-- Main View Container -->
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Bottom Navigation (Mobile First) -->
+  {% if request.user.is_authenticated %}
+  <nav class="main-nav">
+    <i id="ind"></i>
+    <a href="{% url 'pos' %}" class="{% if request.resolver_match.url_name == 'pos' %}on{% endif %}">
+      <span>Billing</span>
+    </a>
+    <a href="{% url 'product_list' %}" class="{% if 'inventory' in request.path %}on{% endif %}">
+      <span>Stock</span>
+    </a>
+    {% if is_owner %}
+    <a href="{% url 'purchase_list' %}" class="{% if 'purchases' in request.path %}on{% endif %}">
+      <span>Purchases</span>
+    </a>
+    {% endif %}
+    <a href="{% url 'customer_list' %}" class="{% if 'customers' in request.path %}on{% endif %}">
+      <span>Credit</span>
+    </a>
+    {% if is_owner %}
+    <a href="{% url 'report_daily_sales' %}" class="{% if 'reports' in request.path %}on{% endif %}">
+      <span>Reports</span>
+    </a>
+    <a href="{% url 'shop_settings' %}" class="{% if 'settings' in request.path or 'network' in request.path %}on{% endif %}">
+      <span>Settings</span>
+    </a>
+    {% else %}
+    <a href="{% url 'network_info' %}" class="{% if 'network' in request.path %}on{% endif %}">
+      <span>Wi-Fi</span>
+    </a>
+    {% endif %}
+  </nav>
+  {% endif %}
+
+  <!-- Shared Toast & Sheet -->
+  <div class="sheet" id="sheet"></div>
+  <div class="toast" id="toast"></div>
+
+  <script src="{% static 'js/main.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

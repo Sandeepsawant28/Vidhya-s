@@ -1,0 +1,602 @@
+/* ==========================================================================
+   Vidya’s Liquor Loft - Dashboard Stylesheet
+   Pure CSS for offline, flat luxury aesthetic.
+   Rules: No gradients, no shadows, no rainbow colours, no hover lifts.
+   Flat surfaces, 1px borders, ruled lines, Georgia serif typography.
+   ALL selectors strictly prefixed with .dash
+   ========================================================================== */
+
+/* Main Container: Centers cleanly and expands on desktop to fit without scrolling */
+.dash {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 4px 0 16px;
+  box-sizing: border-box;
+}
+
+@media (min-width: 900px) {
+  .dash {
+    width: min(1360px, calc(100vw - 32px));
+    max-width: 1360px;
+    margin-left: calc((100% - min(1360px, calc(100vw - 32px))) / 2);
+    padding: 0 0 12px;
+  }
+}
+
+/* Staggered Entrance Animation */
+.dash-section,
+.dash-col,
+.dash-actions-bar {
+  opacity: 0;
+  animation: dash-rise 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation-delay: calc(var(--dash-i, 0) * 45ms);
+}
+
+@keyframes dash-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Top Header Bar */
+.dash-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dash-greeting {
+  font-size: 12px;
+  color: var(--mute);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+}
+.dash-date {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.15;
+}
+.dash-header-status {
+  font-size: 11px;
+  color: var(--mute);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dash-status-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--gold);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Main 3-Column Dashboard Grid */
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+@media (min-width: 900px) {
+  .dash-grid {
+    grid-template-columns: 1.05fr 1.15fr 1.1fr;
+    gap: 12px;
+    align-items: stretch;
+  }
+}
+
+/* Column Wrapper */
+.dash-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Universal Flat Card Component */
+.dash-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
+/* Ruled Section Headings (2px ink top line) */
+.dash-title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  padding-top: 6px;
+  border-top: 2px solid var(--ink);
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+.dash-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+.dash-title-row .dash-title {
+  margin-bottom: 0;
+  flex: 1;
+}
+
+/* Section 2: Hero Sales Card */
+.dash-hero {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 12px 14px;
+}
+.dash-hero-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.dash-hero-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--mute);
+}
+.dash-hero-num {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 6px;
+}
+.dash-hero-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--mute);
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+.dash-hero-diff {
+  font-weight: 600;
+  font-size: 11px;
+}
+.dash-hero-diff.up {
+  color: var(--gold);
+}
+.dash-hero-diff.down {
+  color: var(--warn);
+}
+.dash-hero-diff.equal {
+  color: var(--mute);
+}
+
+/* Section 3: Prominent Flat Billing Button */
+.dash-btn-billing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 14px;
+  background: var(--accent);
+  color: var(--on);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+  box-sizing: border-box;
+}
+.dash-btn-billing:active {
+  transform: scale(0.985);
+}
+
+/* Section 4: Today by Payment Mode */
+.dash-modes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dash-mode-row {
+  margin-bottom: 2px;
+}
+.dash-mode-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  margin-bottom: 3px;
+}
+.dash-mode-name {
+  font-weight: 600;
+  color: var(--ink);
+}
+.dash-mode-val {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.dash-bar-track {
+  height: 5px;
+  background: var(--line);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.dash-bar-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--gold);
+  transition: width 0.75s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Section 5: Last 7 Days Flat Bar Chart */
+.dash-chart-card {
+  padding-bottom: 8px;
+}
+.dash-chart-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  align-items: end;
+  height: 80px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+}
+.dash-chart-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+.dash-chart-amt {
+  font-size: 9px;
+  color: var(--mute);
+  margin-bottom: 3px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.dash-chart-bar-wrap {
+  width: 100%;
+  max-width: 32px;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 1px;
+}
+.dash-chart-bar {
+  width: 100%;
+  height: 0;
+  background: var(--gold);
+  border-radius: 1px;
+  transition: height 0.75s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.dash-chart-bar.is-today {
+  background: var(--accent);
+}
+.dash-chart-labels {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  text-align: center;
+  margin-top: 5px;
+}
+.dash-chart-lbl {
+  font-size: 10px;
+  color: var(--mute);
+  font-weight: 500;
+}
+.dash-chart-lbl.is-today {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* Section 6: Low Stock Card */
+.dash-stock-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dash-stock-row {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+}
+.dash-stock-row:last-child {
+  border-bottom: none;
+}
+.dash-stock-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.dash-stock-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dash-stock-name small {
+  color: var(--mute);
+  font-weight: normal;
+  margin-left: 2px;
+}
+.dash-stock-badge {
+  font-size: 10px;
+  padding: 1px 5px;
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  border-radius: 2px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+}
+.dash-stock-bar {
+  height: 4px;
+  background: var(--line);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.dash-stock-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--warn);
+  transition: width 0.75s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Section 7: Recent Bills Card */
+.dash-bills-list {
+  display: flex;
+  flex-direction: column;
+}
+.dash-bill-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+  color: inherit;
+}
+.dash-bill-item:last-child {
+  border-bottom: none;
+}
+.dash-bill-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.dash-bill-num {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--ink);
+}
+.dash-bill-sub {
+  font-size: 10px;
+  color: var(--mute);
+}
+.dash-bill-amt {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Section 8: Credit Outstanding */
+.dash-credit-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.dash-credit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dash-credit-label {
+  font-size: 11px;
+  color: var(--mute);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.dash-credit-total {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--warn);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* Section 9: Owner Profit Card */
+.dash-profit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dash-profit-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.dash-profit-amt {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.dash-profit-margin {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mute);
+}
+.dash-profit-note {
+  font-size: 10px;
+  color: var(--mute);
+  line-height: 1.3;
+}
+
+/* Cashier Wi-Fi Card */
+.dash-wifi-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.dash-wifi-url {
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+/* Calm Empty State */
+.dash-empty {
+  font-size: 12px;
+  color: var(--mute);
+  padding: 8px 0;
+  font-style: italic;
+}
+
+/* Section 10: Store Actions Strip */
+.dash-actions-bar {
+  margin-top: 10px;
+  border-top: 2px solid var(--ink);
+  padding-top: 8px;
+}
+.dash-actions-title {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.dash-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+.dash-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  padding: 8px 10px;
+  text-decoration: none;
+  color: var(--ink);
+  transition: opacity 0.12s ease;
+}
+.dash-action-btn:active {
+  opacity: 0.7;
+}
+.dash-action-num {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--gold);
+  width: 14px;
+  flex: none;
+}
+.dash-action-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.dash-action-text strong {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash-action-text small {
+  font-size: 10px;
+  color: var(--mute);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Flat Links */
+.dash-link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.dash-link:hover, .dash-link:active {
+  color: var(--gold);
+}
+
+/* Calm Mode (Animation Off) */
+html.calm .dash * {
+  animation-duration: 0.01s !important;
+  transition-duration: 0.01s !important;
+  animation-delay: 0s !important;
+}
+
+/* Responsive Overrides */
+@media (max-width: 899px) {
+  .dash-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .dash-col-chart {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 600px) {
+  .dash-grid {
+    grid-template-columns: 1fr;
+  }
+  .dash-col-chart {
+    grid-column: auto;
+  }
+  .dash-hero-num {
+    font-size: 30px;
+  }
+  .dash-actions-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}

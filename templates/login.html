@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Login - Vidya’s Liquor Loft{% endblock %}
+
+{% block content %}
+<div class="view on" style="max-width:420px; margin:40px auto;">
+  <h2>Store Login</h2>
+  <div class="hint">Enter your Cashier or Owner credentials to access the register.</div>
+
+  <form method="post" style="background:var(--surface); padding:24px; border:1px solid var(--line); border-radius:4px; margin-top:16px;">
+    {% csrf_token %}
+
+    <div style="margin-bottom:16px;">
+      <label class="form-label">Username</label>
+      <input type="text" name="username" class="form-input" placeholder="Username" required autofocus>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <label class="form-label">Password</label>
+      <input type="password" name="password" class="form-input" placeholder="Password" required>
+    </div>
+
+    <button type="submit" class="primary">Sign In to Register</button>
+  </form>
+
+  <div class="foot" style="text-align:center; margin-top:20px;">
+    Offline system. Data stored locally on this machine.
+  </div>
+</div>
+{% endblock %}

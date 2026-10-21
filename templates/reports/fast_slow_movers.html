@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}Fast & Slow Movers (30 Days) - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+    <h2>Fast & Slow Moving Liquor (Last 30 Days)</h2>
+    <a href="?export=excel" class="theme-btn" style="text-decoration:none; padding:8px 12px; font-size:13px;">Download Excel</a>
+  </div>
+  <div class="hint">Sales velocity ranked by total volume of bottles sold across the last 30 days.</div>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; overflow:hidden; margin-top:14px;">
+    {% for item in items %}
+      <div class="line" style="padding:12px 14px;">
+        <div class="top">
+          <div>
+            <b>#{{ forloop.counter }}. {{ item.product__brand }} {{ item.product__name }}</b>
+            <small class="sub">({{ item.product__size_ml }}ml) · MRP: ₹{{ item.product__mrp|floatformat:2 }}</small>
+            <br><small class="sub">Total Revenue Generated: ₹{{ item.total_revenue|floatformat:2 }}</small>
+          </div>
+          <div style="text-align:right;">
+            <span class="num" style="font-size:20px; font-weight:700; color:var(--gold);">{{ item.total_sold }}</span>
+            <small class="sub" style="display:block;">bottles sold</small>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty">No sales activity recorded in the last 30 days.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

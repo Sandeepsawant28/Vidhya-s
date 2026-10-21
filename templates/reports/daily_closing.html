@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Daily Register Closing - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+    <h2>Daily Register Closing</h2>
+    <a href="?date={{ target_date }}&export=excel" class="theme-btn" style="text-decoration:none; padding:8px 12px; font-size:13px;">Download Excel</a>
+  </div>
+
+  <form method="get" style="display:flex; gap:8px; margin-bottom:16px;">
+    <input type="date" name="date" value="{{ target_date }}" class="form-input" style="width:180px; margin:0;">
+    <button type="submit" class="theme-btn" style="padding:10px 16px;">Select Date</button>
+  </form>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:16px; margin-bottom:16px;">
+    <h3 style="font-size:16px; margin-bottom:12px; color:var(--gold);">Counter Sales Summary</h3>
+    <div class="line top">
+      <span>Cash from Counter Sales:</span>
+      <span class="num">₹{{ sales_summary.cash_sales|floatformat:2 }}</span>
+    </div>
+    <div class="line top">
+      <span>UPI / QR Code Receipts:</span>
+      <span class="num">₹{{ sales_summary.upi_sales|floatformat:2 }}</span>
+    </div>
+    <div class="line top">
+      <span>Card Swipes:</span>
+      <span class="num">₹{{ sales_summary.card_sales|floatformat:2 }}</span>
+    </div>
+    <div class="line top">
+      <span>Credit Given (Unpaid):</span>
+      <span class="num">₹{{ sales_summary.credit_sales|floatformat:2 }}</span>
+    </div>
+    <div class="line top" style="font-weight:700;">
+      <span>Total Sales Today ({{ sales_summary.total_bills }} bills):</span>
+      <span class="num">₹{{ sales_summary.total_sales|floatformat:2 }}</span>
+    </div>
+  </div>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:16px; margin-bottom:16px;">
+    <h3 style="font-size:16px; margin-bottom:12px; color:var(--gold);">Credit Settlements Collected Today</h3>
+    <div class="line top">
+      <span>Cash Collected from Credit Customers:</span>
+      <span class="num">₹{{ credit_summary.cash_collected|floatformat:2 }}</span>
+    </div>
+    <div class="line top">
+      <span>UPI Collected from Credit Customers:</span>
+      <span class="num">₹{{ credit_summary.upi_collected|floatformat:2 }}</span>
+    </div>
+    <div class="line top" style="font-weight:700;">
+      <span>Total Credit Recovered Today:</span>
+      <span class="num">₹{{ credit_summary.total_collected|floatformat:2 }}</span>
+    </div>
+  </div>
+
+  <div style="background:var(--accent); color:var(--on); border:1px solid #C99A4B; border-radius:4px; padding:18px;">
+    <h3 style="font-size:18px; margin-bottom:10px; color:#EFE7D6;">Drawer & Account Settlement</h3>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+      <span>Expected Physical Cash in Drawer:</span>
+      <span class="num" style="font-size:24px; font-weight:700;">₹{{ net_cash_in_drawer|floatformat:2 }}</span>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <span>Total Bank UPI Receipts:</span>
+      <span class="num" style="font-size:24px; font-weight:700;">₹{{ net_upi_received|floatformat:2 }}</span>
+    </div>
+  </div>
+</div>
+{% endblock %}

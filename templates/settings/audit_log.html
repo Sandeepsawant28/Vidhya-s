@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Audit Trail - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
+
+{% block content %}
+<div class="view on">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+    <h2>Security & Operations Audit Trail</h2>
+    <a href="{% url 'shop_settings' %}" class="theme-btn" style="text-decoration:none; padding:8px 12px; font-size:13px;">Shop Settings</a>
+  </div>
+  <div class="hint">Permanent log tracking logins, price edits, cancellations, customer additions, and database restores.</div>
+
+  <form method="get" style="display:flex; gap:8px; margin-bottom:16px;">
+    <input type="text" name="q" value="{{ query }}" class="search" placeholder="Search action or details..." style="flex:1; padding:10px;">
+    <button type="submit" class="theme-btn" style="padding:10px 16px;">Filter</button>
+  </form>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; overflow:hidden;">
+    {% for log in logs %}
+      <div class="line" style="padding:10px 14px;">
+        <div class="top">
+          <div>
+            <b>{{ log.action }}</b>
+            <span class="sub">· by <b>{{ log.user.username|default:"System" }}</b></span>
+            <br>
+            <span>{{ log.details }}</span>
+            {% if log.ip_address %}<br><small class="sub">IP: {{ log.ip_address }}</small>{% endif %}
+          </div>
+          <div style="text-align:right;">
+            <small class="sub">{{ log.timestamp|date:"d M Y, H:i:s" }}</small>
+          </div>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty">No audit events recorded matching your query.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

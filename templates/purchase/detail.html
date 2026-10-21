@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Purchase Inv #{{ purchase.invoice_number }}{% endblock %}
+
+{% block content %}
+<div class="view on" style="max-width:680px; margin:20px auto;">
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+    <h2>Purchase Invoice #{{ purchase.invoice_number }}</h2>
+    <a href="{% url 'purchase_list' %}" class="theme-btn" style="text-decoration:none; padding:6px 12px;">Back to List</a>
+  </div>
+
+  <div style="background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:16px; margin-bottom:16px;">
+    <div><b>Supplier:</b> {{ purchase.supplier.name|default:"Direct" }}</div>
+    <div><b>Date:</b> {{ purchase.date|date:"d M Y" }}</div>
+    <div><b>Recorded by:</b> {{ purchase.created_by.username }} ({{ purchase.created_at|date:"d M Y H:i" }})</div>
+    {% if purchase.notes %}<div><b>Notes:</b> {{ purchase.notes }}</div>{% endif %}
+  </div>
+
+  <table style="width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--line); border-radius:4px; font-size:13px;">
+    <thead>
+      <tr style="border-bottom:1px solid var(--line); color:var(--mute); text-align:left;">
+        <th style="padding:10px;">Item</th>
+        <th style="padding:10px; text-align:center;">Qty</th>
+        <th style="padding:10px; text-align:right;">Cost Price</th>
+        <th style="padding:10px; text-align:right;">Total Cost</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+        <tr style="border-bottom:1px solid var(--line);">
+          <td style="padding:10px;">{{ item.product.brand }} {{ item.product.name }} ({{ item.product.size_ml }}ml)</td>
+          <td style="padding:10px; text-align:center;">{{ item.quantity }}</td>
+          <td style="padding:10px; text-align:right;">₹{{ item.purchase_price|floatformat:2 }}</td>
+          <td style="padding:10px; text-align:right; font-weight:600;">₹{{ item.total_cost|floatformat:2 }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="total" style="margin-top:16px;">
+    <span class="sub">Total Invoice Amount</span>
+    <span class="num">₹{{ purchase.total_amount|floatformat:2 }}</span>
+  </div>
+</div>
+{% endblock %}
