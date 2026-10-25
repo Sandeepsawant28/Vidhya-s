@@ -3,6 +3,28 @@
 
 {% block title %}Billing Register - {{ shop_settings.shop_name|default:"Vidya’s Liquor Loft" }}{% endblock %}
 
+{% block extra_css %}
+<style>
+  /* Never show mobile floating bar on laptop / desktop */
+  @media (min-width: 769px) {
+    .pos-mobile-bar {
+      display: none !important;
+    }
+  }
+
+  /* On mobile / phone: ensure the save button has plenty of clearance above the floating bar */
+  @media (max-width: 768px) {
+    #save {
+      margin-bottom: 95px !important;
+      scroll-margin-bottom: 140px;
+    }
+    #v-bill {
+      padding-bottom: 40px;
+    }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <section class="view on" id="v-bill">
   <h2>New bill</h2>
