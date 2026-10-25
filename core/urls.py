@@ -33,6 +33,7 @@ urlpatterns = [
     path('billing/receipt/<int:bill_id>/', views.receipt_view, name='receipt'),
     path('billing/bills/', views.bill_list_view, name='bill_list'),
     path('billing/bills/<int:bill_id>/cancel/', views.bill_cancel_view, name='bill_cancel'),
+    path('billing/bills/<int:bill_id>/delete/', views.bill_cancel_and_delete_view, name='bill_cancel_delete'),
 
     # Credit Customers & Ledger
     path('customers/', views.customer_list_view, name='customer_list'),

@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden, HttpResponseNotAllowed
 from django.db import transaction
 from django.db.models import Sum, F, Q, Count, DecimalField, Value
 from django.db.models.functions import Coalesce
@@ -1049,12 +1049,14 @@ def bill_list_view(request):
 
 
 @login_required
-@owner_required
 def bill_cancel_view(request, bill_id):
     """
     Bill Cancellation (Owner Only).
     Reverses stock reduction via StockMovement, returns credit balance, and logs audit.
     """
+    if not is_owner_user(request.user):
+        return HttpResponseForbidden("Access Forbidden: Shop Owner privileges required.")
+
     bill = get_object_or_404(Bill, id=bill_id)
 
     if bill.status == 'CANCELLED':
@@ -1063,8 +1065,8 @@ def bill_cancel_view(request, bill_id):
 
     if request.method == 'POST':
         reason = request.POST.get('cancellation_reason', '').strip()
-        if not reason:
-            messages.error(request, "A cancellation reason is required.")
+        if not reason or len(reason) < 5:
+            messages.error(request, "A cancellation reason of at least 5 characters is required.")
             return render(request, 'billing/cancel_confirm.html', {'bill': bill})
 
         with transaction.atomic():
@@ -1085,9 +1087,10 @@ def bill_cancel_view(request, bill_id):
                     notes=f"Stock return on bill cancellation: {reason}"
                 )
 
-            # Reverse customer credit if used
-            if bill.credit_paid > 0 and bill.customer:
-                bill.customer.current_balance = (bill.customer.current_balance - bill.credit_paid).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            # Reverse customer credit if used (never below zero)
+            if bill.credit_paid > Decimal('0.00') and bill.customer:
+                new_bal = max(Decimal('0.00'), bill.customer.current_balance - bill.credit_paid)
+                bill.customer.current_balance = new_bal.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 bill.customer.save(update_fields=['current_balance'])
 
             log_audit(
@@ -1097,9 +1100,93 @@ def bill_cancel_view(request, bill_id):
             )
 
         messages.success(request, f"Bill #{bill.bill_number} cancelled successfully. Inventory restored.")
+        next_url = request.POST.get('next')
+        if next_url and next_url.startswith('/'):
+            return redirect(next_url)
         return redirect('bill_list')
 
     return render(request, 'billing/cancel_confirm.html', {'bill': bill})
+
+
+@login_required
+def bill_cancel_and_delete_view(request, bill_id):
+    """
+    Cancel and permanently delete a bill (Owner Only).
+    Enforces atomic transaction:
+    1. Writes an AuditLog row first (action: 'bill cancelled and deleted').
+    2. Puts stock back via positive StockMovement (reason ADJUST, note 'Bill BILL-xxxx cancelled and deleted')
+       only if the bill was not already cancelled.
+    3. Reduces customer credit balance by credit amount (never below zero) if not already cancelled.
+    4. Deletes BillItem rows, then deletes the Bill.
+    """
+    if not is_owner_user(request.user):
+        return HttpResponseForbidden("Access Forbidden: Shop Owner privileges required.")
+
+    if request.method != 'POST':
+        return HttpResponseNotAllowed(['POST'], "POST method required.")
+
+    reason = request.POST.get('cancellation_reason', '').strip()
+    next_url = request.POST.get('next')
+    redirect_target = next_url if (next_url and next_url.startswith('/')) else 'bill_list'
+
+    if not reason or len(reason) < 5:
+        messages.error(request, "A cancellation reason of at least 5 characters is required.")
+        return redirect(redirect_target)
+
+    action_type = request.POST.get('action_type', 'delete')
+    if action_type == 'cancel_only':
+        return bill_cancel_view(request, bill_id)
+
+    bill = get_object_or_404(Bill.objects.select_related('customer', 'created_by'), id=bill_id)
+    bill_number = bill.bill_number
+    was_already_cancelled = (bill.status == 'CANCELLED')
+
+    try:
+        with transaction.atomic():
+            items = list(bill.items.select_related('product').all())
+            item_count = len(items)
+            customer_info = f"{bill.customer.name} ({bill.customer.phone})" if bill.customer else "None"
+
+            # 4a. Write an AuditLog row first (persists after the bill is deleted)
+            audit_details = (
+                f"Bill: {bill_number}, Total: ₹{bill.total_amount:.2f}, "
+                f"Payment Mode: {bill.get_payment_mode_display()}, Items: {item_count}, "
+                f"Customer: {customer_info}, Reason: {reason}"
+            )
+            AuditLog.objects.create(
+                user=request.user,
+                action="bill cancelled and deleted",
+                details=audit_details,
+                ip_address=get_client_ip(request)
+            )
+
+            # 4b. Put the stock back if not already cancelled and returned
+            if not was_already_cancelled:
+                for item in items:
+                    StockMovement.objects.create(
+                        product=item.product,
+                        movement_type='ADJUST',
+                        quantity=item.quantity,
+                        reference_id=bill_number,
+                        created_by=request.user,
+                        notes=f"Bill {bill_number} cancelled and deleted"
+                    )
+
+            # 4c. Reduce customer outstanding balance by credit amount (never below zero)
+            if not was_already_cancelled and bill.credit_paid > Decimal('0.00') and bill.customer:
+                new_balance = max(Decimal('0.00'), bill.customer.current_balance - bill.credit_paid)
+                bill.customer.current_balance = new_balance.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                bill.customer.save(update_fields=['current_balance'])
+
+            # 4d. Delete BillItem rows, then the Bill
+            bill.items.all().delete()
+            bill.delete()
+
+        messages.success(request, f"Bill #{bill_number} cancelled and permanently deleted.")
+    except Exception as e:
+        messages.error(request, f"Failed to cancel and delete bill #{bill_number}: {str(e)}")
+
+    return redirect(redirect_target)
 
 
 # ==========================================

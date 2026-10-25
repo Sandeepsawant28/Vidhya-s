@@ -25,12 +25,13 @@
 
   <form method="post">
     {% csrf_token %}
-    <label class="form-label">Reason for Cancellation (Required for Audit Log)</label>
-    <textarea name="cancellation_reason" class="form-input" rows="3" placeholder="e.g. Customer cancelled order / Wrong bottles scanned by cashier" required></textarea>
+    <label class="form-label">Reason for Cancellation (Required for Audit Log, minimum 5 characters)</label>
+    <textarea name="cancellation_reason" class="form-input" rows="3" placeholder="e.g. Customer cancelled order / Wrong bottles scanned by cashier" required minlength="5"></textarea>
 
-    <div style="display:flex; gap:10px; margin-top:14px;">
-      <button type="submit" class="primary" style="background:#7f1d1d; border-color:#dc2626; color:#fff; flex:1;">Confirm & Restore Stock</button>
-      <a href="{% url 'bill_list' %}" class="theme-btn" style="padding:14px; text-decoration:none;">Go Back</a>
+    <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px;">
+      <button type="submit" name="action_type" value="delete" formaction="{% url 'bill_cancel_delete' bill.id %}" style="min-height:44px; padding:10px 14px; background:var(--warn); border:1px solid var(--warn); color:#ffffff; border-radius:4px; font-size:14px; font-weight:600; cursor:pointer;">Cancel and delete permanently</button>
+      <button type="submit" name="action_type" value="cancel_only" formaction="{% url 'bill_cancel' bill.id %}" style="min-height:44px; padding:10px 14px; background:transparent; border:1px solid var(--line); color:var(--ink); border-radius:4px; font-size:14px; cursor:pointer;">Cancel but keep a record</button>
+      <a href="{% url 'bill_list' %}" style="min-height:44px; display:inline-flex; align-items:center; justify-content:center; padding:10px 14px; text-decoration:none; background:var(--surface); border:1px solid var(--line); color:var(--ink); border-radius:4px; font-size:14px; text-align:center;">Keep bill</a>
     </div>
   </form>
 </div>

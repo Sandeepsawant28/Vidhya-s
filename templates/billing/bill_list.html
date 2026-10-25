@@ -33,10 +33,21 @@
           </div>
           <div style="text-align:right;">
             <div class="num" style="font-size:18px; font-weight:700;">₹{{ b.total_amount|floatformat:2 }}</div>
-            <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:6px;">
+            <div style="display:flex; gap:6px; justify-content:flex-end; margin-top:6px; flex-wrap:wrap;">
               <a href="{% url 'receipt' b.id %}" target="_blank" class="theme-btn" style="text-decoration:none; font-size:11px; padding:3px 8px;">Slip</a>
-              {% if is_owner and b.status != 'CANCELLED' %}
-                <a href="{% url 'bill_cancel' b.id %}" class="theme-btn" style="text-decoration:none; font-size:11px; padding:3px 8px; color:var(--warn); border-color:var(--warn);">Cancel Bill</a>
+              {% if is_owner %}
+                <button type="button" class="btn-cancel-delete" 
+                  data-bill-id="{{ b.id }}"
+                  data-bill-number="{{ b.bill_number }}"
+                  data-date="{{ b.created_at|date:'d M Y, H:i' }}"
+                  data-total="₹{{ b.total_amount|floatformat:2 }}"
+                  data-payment-mode="{{ b.get_payment_mode_display }}"
+                  data-status="{{ b.status }}"
+                  data-delete-url="{% url 'bill_cancel_delete' b.id %}"
+                  data-cancel-url="{% url 'bill_cancel' b.id %}"
+                  style="font-size:11px; padding:3px 8px; color:var(--warn); border:1px solid var(--warn); background:transparent; border-radius:4px; cursor:pointer;">
+                  Cancel and delete
+                </button>
               {% endif %}
             </div>
           </div>
@@ -47,4 +58,122 @@
     {% endfor %}
   </div>
 </div>
+
+{% if is_owner %}
+<div id="cancel-delete-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7); z-index:1000; align-items:center; justify-content:center; padding:12px; box-sizing:border-box;" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div style="width:100%; max-width:380px; background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:16px; box-sizing:border-box; color:var(--ink);">
+    <h3 id="modal-title" style="margin:0 0 12px; font-size:18px; color:var(--ink);">Cancel Bill</h3>
+
+    <div style="background:var(--bg); border:1px solid var(--line); border-radius:4px; padding:10px 12px; margin-bottom:14px; font-size:13px; line-height:1.5;">
+      <div><strong>Bill Number:</strong> <span id="modal-bill-number"></span></div>
+      <div><strong>Date:</strong> <span id="modal-bill-date"></span></div>
+      <div><strong>Total:</strong> <span id="modal-bill-total"></span></div>
+      <div><strong>Payment Mode:</strong> <span id="modal-bill-mode"></span></div>
+    </div>
+
+    <form id="cancel-delete-form" method="post" action="">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <div style="margin-bottom:14px;">
+        <label for="cancellation-reason" style="display:block; margin-bottom:6px; font-size:13px; font-weight:600;">Reason (minimum 5 characters):</label>
+        <textarea id="cancellation-reason" name="cancellation_reason" required minlength="5" rows="3" class="form-input" placeholder="Enter reason for cancelling or deleting..." style="width:100%; box-sizing:border-box; padding:10px; border:1px solid var(--line); border-radius:4px; background:var(--surface); color:var(--ink); font-family:inherit; font-size:14px; resize:vertical;"></textarea>
+        <div id="reason-error" style="display:none; color:var(--warn); font-size:12px; margin-top:4px;">Reason must be at least 5 characters.</div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button type="button" id="btn-delete-permanently" style="min-height:44px; width:100%; padding:10px 14px; background:var(--warn); color:#ffffff; border:1px solid var(--warn); border-radius:4px; font-size:14px; font-weight:600; cursor:pointer; box-sizing:border-box;">
+          Cancel and delete permanently
+        </button>
+
+        <button type="button" id="btn-cancel-only" style="min-height:44px; width:100%; padding:10px 14px; background:transparent; color:var(--ink); border:1px solid var(--line); border-radius:4px; font-size:14px; cursor:pointer; box-sizing:border-box;">
+          Cancel but keep a record
+        </button>
+
+        <button type="button" id="btn-keep-bill" style="min-height:44px; width:100%; padding:10px 14px; background:var(--surface); color:var(--ink); border:1px solid var(--line); border-radius:4px; font-size:14px; cursor:pointer; box-sizing:border-box;">
+          Keep bill
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function() {
+  var modal = document.getElementById('cancel-delete-modal');
+  if (!modal) return;
+
+  var form = document.getElementById('cancel-delete-form');
+  var numEl = document.getElementById('modal-bill-number');
+  var dateEl = document.getElementById('modal-bill-date');
+  var totalEl = document.getElementById('modal-bill-total');
+  var modeEl = document.getElementById('modal-bill-mode');
+  var reasonInput = document.getElementById('cancellation-reason');
+  var reasonError = document.getElementById('reason-error');
+  var btnDelete = document.getElementById('btn-delete-permanently');
+  var btnCancelOnly = document.getElementById('btn-cancel-only');
+  var btnKeep = document.getElementById('btn-keep-bill');
+
+  var currentDeleteUrl = '';
+  var currentCancelUrl = '';
+
+  document.querySelectorAll('.btn-cancel-delete').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      currentDeleteUrl = btn.getAttribute('data-delete-url');
+      currentCancelUrl = btn.getAttribute('data-cancel-url');
+      var status = btn.getAttribute('data-status');
+
+      numEl.textContent = btn.getAttribute('data-bill-number');
+      dateEl.textContent = btn.getAttribute('data-date');
+      totalEl.textContent = btn.getAttribute('data-total');
+      modeEl.textContent = btn.getAttribute('data-payment-mode');
+
+      reasonInput.value = '';
+      if (reasonError) reasonError.style.display = 'none';
+
+      if (status === 'CANCELLED') {
+        btnCancelOnly.style.display = 'none';
+      } else {
+        btnCancelOnly.style.display = 'block';
+      }
+
+      modal.style.display = 'flex';
+      reasonInput.focus();
+    });
+  });
+
+  function isReasonValid() {
+    var val = reasonInput.value.trim();
+    if (val.length < 5) {
+      if (reasonError) reasonError.style.display = 'block';
+      reasonInput.focus();
+      return false;
+    }
+    if (reasonError) reasonError.style.display = 'none';
+    return true;
+  }
+
+  btnDelete.addEventListener('click', function() {
+    if (!isReasonValid()) return;
+    form.action = currentDeleteUrl;
+    form.submit();
+  });
+
+  btnCancelOnly.addEventListener('click', function() {
+    if (!isReasonValid()) return;
+    form.action = currentCancelUrl;
+    form.submit();
+  });
+
+  btnKeep.addEventListener('click', function() {
+    modal.style.display = 'none';
+  });
+
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) {
+      modal.style.display = 'none';
+    }
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}
